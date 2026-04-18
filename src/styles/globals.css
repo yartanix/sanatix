@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-midnight:    #0F0F14;
+  --color-gold:        #C8973A;
+  --color-gold-light:  #E8C47A;
+  --color-warm-white:  #F5F4F0;
+  --color-sand:        #F0EDE4;
+  --color-ink:         #2C2C3A;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* RTL support */
+  [dir="rtl"] {
+    font-family: "Tajawal", system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-gold { color: var(--color-gold); }
+  .bg-midnight { background-color: var(--color-midnight); }
+  .bg-warm-white { background-color: var(--color-warm-white); }
+}

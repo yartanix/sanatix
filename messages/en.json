@@ -1,0 +1,62 @@
+{
+  "common": {
+    "appName": "Sanatix",
+    "slogan": "Light up your moments",
+    "search": "Search",
+    "login": "Log in",
+    "register": "Sign up",
+    "logout": "Log out",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "viewAll": "View all"
+  },
+  "nav": {
+    "events": "Events",
+    "vendors": "Vendors",
+    "organizers": "Organizers",
+    "crowdfunding": "Crowdfunding",
+    "dashboard": "Dashboard"
+  },
+  "home": {
+    "hero": "Light up your moments",
+    "heroSub": "Discover events, book tickets, and find the best event vendors across the GCC",
+    "searchPlaceholder": "Search events, vendors, or organizers...",
+    "featuredEvents": "Featured Events",
+    "topVendors": "Top Vendors",
+    "upcomingEvents": "Upcoming Events"
+  },
+  "events": {
+    "title": "Events",
+    "bookNow": "Book Now",
+    "soldOut": "Sold Out",
+    "free": "Free",
+    "sellingFast": "Selling Fast",
+    "featured": "Featured",
+    "today": "Today",
+    "thisWeek": "This Week",
+    "filters": "Filters"
+  },
+  "vendors": {
+    "title": "Vendors",
+    "verified": "Verified",
+    "contactVendor": "Contact Vendor",
+    "viewProfile": "View Profile"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "loginTitle": "Welcome back",
+    "registerTitle": "Create your account",
+    "forgotPassword": "Forgot password?",
+    "orContinueWith": "Or continue with",
+    "alreadyHaveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?"
+  }
+}

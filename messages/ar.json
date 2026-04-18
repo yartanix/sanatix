@@ -1,0 +1,62 @@
+{
+  "common": {
+    "appName": "سناتيكس",
+    "slogan": "أضئ لحظاتك",
+    "search": "بحث",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "logout": "تسجيل الخروج",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "next": "التالي",
+    "viewAll": "عرض الكل"
+  },
+  "nav": {
+    "events": "الفعاليات",
+    "vendors": "الموردون",
+    "organizers": "المنظمون",
+    "crowdfunding": "التمويل الجماعي",
+    "dashboard": "لوحة التحكم"
+  },
+  "home": {
+    "hero": "أضئ لحظاتك",
+    "heroSub": "اكتشف الفعاليات، احجز التذاكر، وابحث عن أفضل موردي المناسبات في الخليج",
+    "searchPlaceholder": "ابحث عن فعالية، مورد، أو منظم...",
+    "featuredEvents": "الفعاليات المميزة",
+    "topVendors": "أبرز الموردين",
+    "upcomingEvents": "الفعاليات القادمة"
+  },
+  "events": {
+    "title": "الفعاليات",
+    "bookNow": "احجز الآن",
+    "soldOut": "نفدت التذاكر",
+    "free": "مجاني",
+    "sellingFast": "يُباع بسرعة",
+    "featured": "مميز",
+    "today": "اليوم",
+    "thisWeek": "هذا الأسبوع",
+    "filters": "تصفية"
+  },
+  "vendors": {
+    "title": "الموردون",
+    "verified": "موثق",
+    "contactVendor": "تواصل مع المورد",
+    "viewProfile": "عرض الملف"
+  },
+  "auth": {
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "fullName": "الاسم الكامل",
+    "phone": "رقم الجوال",
+    "loginTitle": "تسجيل الدخول",
+    "registerTitle": "إنشاء حساب جديد",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "orContinueWith": "أو تابع باستخدام",
+    "alreadyHaveAccount": "لديك حساب بالفعل؟",
+    "noAccount": "ليس لديك حساب؟"
+  }
+}
