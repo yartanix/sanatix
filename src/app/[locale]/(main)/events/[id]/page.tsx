@@ -29,9 +29,13 @@ export default async function EventPage({ params }: EventPageProps) {
   const description = locale === "ar" ? event.description_ar : event.description_en;
   const isRTL = locale === "ar";
 
-  const minPrice = event.ticket_types?.length
-    ? Math.min(...event.ticket_types.map((ticket: any) => ticket.price))
-    : 0;
+  let minPrice = 0;
+  if (event.ticket_types && event.ticket_types.length > 0) {
+    minPrice = event.ticket_types[0].price;
+    for (const tt of event.ticket_types) {
+      if (tt.price < minPrice) minPrice = tt.price;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-brand-warm-white">
