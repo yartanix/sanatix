@@ -30,7 +30,7 @@ export default async function EventPage({ params }: EventPageProps) {
   const isRTL = locale === "ar";
 
   const minPrice = event.ticket_types?.length
-    ? Math.min(...event.ticket_types.map((t: { price: number }) => t.price))
+    ? Math.min(...event.ticket_types.map((ticket: any) => ticket.price))
     : 0;
 
   return (
