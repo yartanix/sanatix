@@ -76,7 +76,7 @@ export default async function BookingConfirmPage({ params }: ConfirmPageProps) {
               </div>
               <div className="flex items-center gap-2.5 text-sm text-brand-ink/60">
                 <MapPin size={14} className="text-brand-gold shrink-0" />
-                <span>{booking.events.venue_name} (booking.events.venue_city}</span>
+                <span>{booking.events.venue_name} {booking.events.venue_city}</span>
               </div>
             </div>
 
