@@ -231,6 +231,80 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure handle_new_user();
 
+-- ─── Payment Methods ─────────────────────────────────────────
+create table payment_methods (
+  id              uuid primary key default uuid_generate_v4(),
+  user_id         uuid not null references profiles(id) on delete cascade,
+  type            varchar(50) not null check (type in ('hyperpay','tabby','stripe','tamara','stc_pay')),
+  provider        varchar(50) not null,
+  token           varchar(255),
+  last_four       varchar(4),
+  expiry_month    integer,
+  expiry_year     integer,
+  is_default      boolean not null default false,
+  is_active       boolean not null default true,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  unique(user_id, token)
+);
+
+-- ─── Payment Transactions ─────────────────────────────────────
+create table payment_transactions (
+  id                      uuid primary key default uuid_generate_v4(),
+  booking_id              uuid not null references bookings(id) on delete cascade,
+  user_id                 uuid not null references profiles(id),
+  amount                  numeric(10,2) not null,
+  currency                varchar(3) not null default 'SAR',
+  payment_method          varchar(50) not null,
+  provider                varchar(50) not null,
+  provider_transaction_id varchar(255),
+  status                  varchar(50) not null default 'pending'
+                            check (status in ('pending','processing','completed','failed','refunded','cancelled')),
+  payment_details         jsonb,
+  error_message           text,
+  refund_amount           numeric(10,2),
+  refund_reason           text,
+  refunded_at             timestamptz,
+  created_at              timestamptz not null default now(),
+  updated_at              timestamptz not null default now()
+);
+
+-- ─── Payment Webhooks Log ─────────────────────────────────────
+create table payment_webhooks (
+  id              uuid primary key default uuid_generate_v4(),
+  provider        varchar(50) not null,
+  event_type      varchar(100) not null,
+  payload         jsonb not null,
+  processed       boolean not null default false,
+  processed_at    timestamptz,
+  created_at      timestamptz not null default now()
+);
+
+-- ─── Payment Indexes ──────────────────────────────────────────
+create index idx_payment_methods_user         on payment_methods(user_id);
+create index idx_payment_transactions_booking on payment_transactions(booking_id);
+create index idx_payment_transactions_user    on payment_transactions(user_id);
+create index idx_payment_transactions_status  on payment_transactions(status);
+create index idx_payment_transactions_created on payment_transactions(created_at desc);
+create index idx_payment_webhooks_provider    on payment_webhooks(provider);
+
+-- ─── Payment RLS ──────────────────────────────────────────────
+alter table payment_methods      enable row level security;
+alter table payment_transactions enable row level security;
+alter table payment_webhooks     enable row level security;
+
+-- Users can only see and manage their own payment methods
+create policy "payment_methods_user_access" on payment_methods
+  for all using (auth.uid() = user_id);
+
+-- Users can only read their own transactions
+create policy "payment_transactions_user_access" on payment_transactions
+  for select using (auth.uid() = user_id);
+
+-- Only service role can insert/update webhooks
+create policy "payment_webhooks_service_only" on payment_webhooks
+  for all using (auth.role() = 'service_role');
+
 -- ─── Trigger: update updated_at ──────────────────────────────
 create or replace function set_updated_at()
 returns trigger language plpgsql as $$
@@ -244,4 +318,6 @@ create trigger set_updated_at_profiles  before update on profiles  for each row 
 create trigger set_updated_at_events    before update on events    for each row execute procedure set_updated_at();
 create trigger set_updated_at_bookings  before update on bookings  for each row execute procedure set_updated_at();
 create trigger set_updated_at_vendors   before update on vendors   for each row execute procedure set_updated_at();
-create trigger set_updated_at_campaigns before update on campaigns for each row execute procedure set_updated_at();
+create trigger set_updated_at_campaigns         before update on campaigns         for each row execute procedure set_updated_at();
+create trigger set_updated_at_payment_methods   before update on payment_methods   for each row execute procedure set_updated_at();
+create trigger set_updated_at_payment_txns      before update on payment_transactions for each row execute procedure set_updated_at();
