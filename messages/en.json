@@ -58,5 +58,63 @@
     "orContinueWith": "Or continue with",
     "alreadyHaveAccount": "Already have an account?",
     "noAccount": "Don't have an account?"
+  },
+  "payments": {
+    "title": "Payments",
+    "checkout": "Checkout",
+    "paymentMethod": "Payment method",
+    "selectMethod": "Select a payment method",
+    "orderSummary": "Order summary",
+    "subtotal": "Subtotal",
+    "serviceFee": "Service fee (5%)",
+    "total": "Total",
+    "completePayment": "Complete payment",
+    "processing": "Processing...",
+    "termsAgreement": "I agree to the Terms of Service, Privacy Policy, and Refund Policy",
+    "securePayment": "All transactions are encrypted and secure",
+    "paymentSuccess": "Payment successful!",
+    "paymentFailed": "Payment failed",
+    "paymentCancelled": "Payment cancelled",
+    "paymentPending": "Payment pending",
+    "bookingConfirmed": "Your booking is confirmed",
+    "tryAgain": "Try again",
+    "downloadTicket": "Download ticket",
+    "share": "Share",
+    "history": "Payment history",
+    "savedMethods": "Saved payment methods",
+    "addMethod": "Add new",
+    "noMethods": "No saved payment methods",
+    "noTransactions": "No transactions yet",
+    "transactionId": "Transaction ID",
+    "providerRef": "Provider ref",
+    "amountPaid": "Amount paid",
+    "refundAmount": "Refund amount",
+    "allStatuses": "All statuses",
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "failed": "Failed",
+      "refunded": "Refunded",
+      "cancelled": "Cancelled"
+    },
+    "providers": {
+      "hyperpay": "HyperPay",
+      "tabby": "Tabby",
+      "stripe": "Stripe"
+    },
+    "hyperpay": {
+      "name": "HyperPay",
+      "description": "Credit & debit cards — Visa, Mastercard, Mada"
+    },
+    "tabby": {
+      "name": "Tabby",
+      "description": "Buy now, pay later in 4 installments — interest free",
+      "badge": "BNPL"
+    },
+    "stripe": {
+      "name": "Stripe",
+      "description": "International cards — Visa, Mastercard, Amex"
+    }
   }
 }

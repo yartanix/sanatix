@@ -69,6 +69,23 @@ export interface Vendor {
   created_at: string;
 }
 
+export type BookingStatus = "pending" | "confirmed" | "cancelled" | "refunded";
+
+export interface Booking {
+  id: string;
+  user_id: string;
+  ticket_type_id: string;
+  event_id: string;
+  quantity: number;
+  total_amount: number;
+  currency: "SAR" | "AED" | "KWD" | "QAR" | "USD";
+  status: BookingStatus;
+  qr_code: string | null;
+  payment_ref: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CrowdfundingCampaign {
   id: string;
   organizer_id: string;
