@@ -12,6 +12,8 @@ const nav = [
   { href: "/organizer/settings", label_ar: "الإعدادات",    label_en: "Settings",   Icon: Settings       },
 ];
 
+type NavItem = { href: string; label_ar: string; label_en: string; Icon: React.ElementType };
+
 export default async function OrganizerLayout({
   children,
 }: {
@@ -25,7 +27,7 @@ export default async function OrganizerLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect(`/${locale}/login?next=/${locale}/organizer`);
+  if (!user) redirect("/" + locale + "/login?next=/" + locale + "/organizer");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -34,11 +36,13 @@ export default async function OrganizerLayout({
     .single();
 
   if (!profile || (profile.role !== "organizer" && profile.role !== "admin")) {
-    redirect(`/${locale}`);
+    redirect("/" + locale);
   }
 
+  const sidebarClass = "flex min-h-screen bg-[#0a0a0a] " + (isRTL ? "flex-row-reverse" : "flex-row");
+
   return (
-    <div className={`flex min-h-screen bg-[#0a0a0a] ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
+    <div className={sidebarClass}>
       {/* Sidebar */}
       <aside className="w-60 shrink-0 flex flex-col bg-[#111] border-r border-white/8 sticky top-0 h-screen">
         {/* Logo / brand */}
@@ -55,16 +59,19 @@ export default async function OrganizerLayout({
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5">
-          {nav.map(({ href, label_ar, label_en, Icon }) => (
-            <Link
-              key={href}
-              href={href as "/organizer"}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/60 hover:bg-white/5 hover:text-white transition-colors"
-            >
-              <Icon size={15} />
-              {isRTL ? label_ar : label_en}
-            </Link>
-          ))}
+          {nav.map(function(item) {
+            const navItem = item as NavItem;
+            return (
+              <Link
+                key={navItem.href}
+                href={navItem.href as "/organizer"}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/60 hover:bg-white/5 hover:text-white transition-colors"
+              >
+                <navItem.Icon size={15} />
+                {isRTL ? navItem.label_ar : navItem.label_en}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="p-3 border-t border-white/8">
