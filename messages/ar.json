@@ -58,5 +58,63 @@
     "orContinueWith": "أو تابع باستخدام",
     "alreadyHaveAccount": "لديك حساب بالفعل؟",
     "noAccount": "ليس لديك حساب؟"
+  },
+  "payments": {
+    "title": "المدفوعات",
+    "checkout": "إتمام الدفع",
+    "paymentMethod": "طريقة الدفع",
+    "selectMethod": "اختر طريقة الدفع",
+    "orderSummary": "ملخص الطلب",
+    "subtotal": "المبلغ الأساسي",
+    "serviceFee": "رسوم الخدمة (5%)",
+    "total": "الإجمالي",
+    "completePayment": "إتمام الدفع الآن",
+    "processing": "جاري المعالجة...",
+    "termsAgreement": "أوافق على شروط الاستخدام وسياسة الخصوصية وسياسة الاسترداد",
+    "securePayment": "جميع المعاملات مشفرة وآمنة",
+    "paymentSuccess": "تم الدفع بنجاح!",
+    "paymentFailed": "فشل الدفع",
+    "paymentCancelled": "تم إلغاء الدفع",
+    "paymentPending": "الدفع قيد الانتظار",
+    "bookingConfirmed": "تم تأكيد حجزك",
+    "tryAgain": "حاول مرة أخرى",
+    "downloadTicket": "تحميل التذكرة",
+    "share": "مشاركة",
+    "history": "سجل المدفوعات",
+    "savedMethods": "طرق الدفع المحفوظة",
+    "addMethod": "إضافة جديد",
+    "noMethods": "لا توجد طرق دفع محفوظة",
+    "noTransactions": "لا توجد معاملات بعد",
+    "transactionId": "رقم المعاملة",
+    "providerRef": "رقم مزود الدفع",
+    "amountPaid": "المبلغ المدفوع",
+    "refundAmount": "مبلغ الاسترداد",
+    "allStatuses": "جميع الحالات",
+    "status": {
+      "pending": "معلق",
+      "processing": "قيد المعالجة",
+      "completed": "مكتمل",
+      "failed": "فاشل",
+      "refunded": "مسترد",
+      "cancelled": "ملغي"
+    },
+    "providers": {
+      "hyperpay": "هايبر باي",
+      "tabby": "تابي",
+      "stripe": "سترايب"
+    },
+    "hyperpay": {
+      "name": "هايبر باي",
+      "description": "بطاقات الائتمان والخصم — فيزا، ماستركارد، مدى"
+    },
+    "tabby": {
+      "name": "تابي",
+      "description": "اشتر الآن وادفع لاحقاً على 4 أقساط — بدون فوائد",
+      "badge": "تقسيط"
+    },
+    "stripe": {
+      "name": "سترايب",
+      "description": "البطاقات الدولية — فيزا، ماستركارد، أمريكان إكسبريس"
+    }
   }
 }
