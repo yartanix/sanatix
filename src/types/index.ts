@@ -84,3 +84,52 @@ export interface CrowdfundingCampaign {
   status: "active" | "funded" | "expired" | "cancelled";
   created_at: string;
 }
+
+// ─── Admin Types ──────────────────────────────────────────────
+
+export type AdminRoleType = "super_admin" | "moderator" | "analyst";
+
+export interface AdminRole {
+  id: string;
+  user_id: string;
+  role: AdminRoleType;
+  permissions: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  admin_id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  changes: Record<string, unknown> | null;
+  ip_address: string | null;
+  created_at: string;
+}
+
+export interface PlatformSetting {
+  id: string;
+  key: string;
+  value: Record<string, unknown>;
+  description: string | null;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+export interface ContentReport {
+  id: string;
+  reporter_id: string;
+  reported_entity_type: string;
+  reported_entity_id: string;
+  reason: string;
+  description: string | null;
+  status: "pending" | "reviewed" | "resolved" | "dismissed";
+  resolved_by: string | null;
+  resolution_notes: string | null;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export type AdminEventStatus = "pending" | "approved" | "rejected" | "suspended";
