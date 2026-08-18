@@ -57,16 +57,28 @@ export default function TicketSelector({ eventId, ticketTypes, isFree, locale }:
     setError(null);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
-    const bookings = [];
-    for (const [ticketTypeId, quantity] of Object.entries(quantities)) {
-      if (quantity === 0) continue;
-      const tt = availableTickets.find(t => t.id === ticketTypeId);
-      if (!tt) continue;
-      bookings.push({ user_id: user.id, ticket_type_id: ticketTypeId, event_id: eventId, quantity, total_amount: tt.price * quantity, currency: tt.currency, status: "pending" as const, qr_code: `SAQ�-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}` });
+
+    const items = Object.entries(quantities)
+      .filter(([, quantity]) => quantity > 0)
+      .map(([ticket_type_id, quantity]) => ({ ticket_type_id, quantity }));
+
+    // Booking is created server-side via /api/bookings, which locks the
+    // ticket_type row and checks remaining stock atomically — this avoids
+    // overselling when two people book the same last tickets at once.
+    const res = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
+    const result = await res.json();
+
+    if (!res.ok) {
+      setError(result.error ?? "Booking failed");
+      setLoading(false);
+      return;
     }
-    const { data, error: bookingError } = await supabase.from("bookings").insert(bookings).select();
-    if (bookingError) { setError(bookingError.message); setLoading(false); return; }
-    router.push(`/bookings/${data[0].id}/confirm`);
+
+    router.push(`/bookings/${result.bookings[0].id}/confirm`);
   }
 
   if (ticketTypes.length === 0) return (<div className="bg-white rounded-2xl border border-black/5 p-6 text-center"><Ticket size={32} className="text-brand-ink/20 mx-auto mb-3" /><p className="text-sm text-brand-ink/50">{isRTL ? "ةلتذاكر غير متاحة" : "No tickets available yet"}</p></div>);

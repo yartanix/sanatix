@@ -2,9 +2,10 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Link, useRouter, usePathname } from "@/i18n/routing";
-import { Menu, X, Globe } from "lucide-react";
-import { useState } from "react";
+import { Menu, X, Globe, LayoutDashboard, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 export default function Navbar() {
   const t = useTranslations();
@@ -12,12 +13,27 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   const isRTL = locale === "ar";
+
+  // Navbar previously always showed "Login"/"Register" regardless of auth
+  // state, with no way to reach /dashboard and a `handleLogout` that was
+  // defined but never wired to anything. Track the session so signed-in
+  // users see Dashboard/Logout instead.
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.subscription.unsubscribe();
+  }, []);
 
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    setUser(null);
     router.push("/");
   }
 
@@ -67,15 +83,33 @@ export default function Navbar() {
             <Globe size={15} />
             {isRTL ? "EN" : "ع"}
           </button>
-          <Link href="/login" className="text-sm text-brand-ink/70 hover:text-brand-midnight transition-colors">
-            {t("common.login")}
-          </Link>
-          <Link
-            href="/register"
-            className="text-sm bg-brand-gold text-white px-4 py-2 rounded-full hover:bg-brand-gold/90 transition-colors font-medium"
-          >
-            {t("common.register")}
-          </Link>
+          {user ? (
+            <>
+              <Link href="/dashboard" className="flex items-center gap-1.5 text-sm text-brand-ink/70 hover:text-brand-midnight transition-colors">
+                <LayoutDashboard size={15} />
+                {isRTL ? "لوحتي" : "Dashboard"}
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 text-sm text-brand-ink/70 hover:text-brand-midnight transition-colors"
+              >
+                <LogOut size={15} />
+                {t("common.logout")}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm text-brand-ink/70 hover:text-brand-midnight transition-colors">
+                {t("common.login")}
+              </Link>
+              <Link
+                href="/register"
+                className="text-sm bg-brand-gold text-white px-4 py-2 rounded-full hover:bg-brand-gold/90 transition-colors font-medium"
+              >
+                {t("common.register")}
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile menu toggle */}
@@ -101,10 +135,26 @@ export default function Navbar() {
             </Link>
           ))}
           <div className="pt-2 flex items-center gap-3 border-t border-black/5">
-            <Link href="/login" className="text-sm text-brand-ink/70">{t("common.login")}</Link>
-            <Link href="/register" className="text-sm bg-brand-gold text-white px-4 py-2 rounded-full font-medium">
-              {t("common.register")}
-            </Link>
+            {user ? (
+              <>
+                <Link href="/dashboard" className="text-sm text-brand-ink/70" onClick={() => setMenuOpen(false)}>
+                  {isRTL ? "لوحتي" : "Dashboard"}
+                </Link>
+                <button
+                  onClick={() => { setMenuOpen(false); handleLogout(); }}
+                  className="text-sm bg-brand-gold text-white px-4 py-2 rounded-full font-medium"
+                >
+                  {t("common.logout")}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm text-brand-ink/70" onClick={() => setMenuOpen(false)}>{t("common.login")}</Link>
+                <Link href="/register" className="text-sm bg-brand-gold text-white px-4 py-2 rounded-full font-medium" onClick={() => setMenuOpen(false)}>
+                  {t("common.register")}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -29,9 +29,13 @@ export default async function OrganizerLayout({
 
   if (!user) redirect("/" + locale + "/login?next=/" + locale + "/organizer");
 
+  // NOTE: this used to select a "username" column that doesn't exist in the
+  // profiles table (see schema.sql) — PostgREST rejected the whole query, so
+  // `profile` was always null and every organizer got redirected out of
+  // /organizer regardless of their actual role. Fixed to select real columns.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name, username")
+    .select("role, full_name")
     .eq("id", user.id)
     .single();
 
@@ -54,7 +58,7 @@ export default async function OrganizerLayout({
             </span>
           </div>
           <p className="text-xs text-white/40 mt-1 truncate">
-            {profile.full_name || profile.username || user.email}
+            {profile.full_name || user.email}
           </p>
         </div>
 
