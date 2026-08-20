@@ -1,0 +1,25 @@
+diff --git a/src/app/page.tsx b/src/app/page.tsx
+deleted file mode 100644
+index 31ba9a5..0000000
+--- a/src/app/page.tsx
++++ /dev/null
+@@ -1,5 +0,0 @@
+-import { redirect } from "next/navigation";
+-
+-export default function RootPage() {
+-  redirect("/ar");
+-}
+diff --git a/middleware.ts b/src/middleware.ts
+similarity index 84%
+rename from middleware.ts
+rename to src/middleware.ts
+index 5d08cf1..3a02819 100644
+--- a/middleware.ts
++++ b/src/middleware.ts
+@@ -1,5 +1,5 @@
+ import createMiddleware from "next-intl/middleware";
+-import { routing } from "./src/i18n/routing";
++import { routing } from "./i18n/routing";
+ 
+ export default createMiddleware(routing);
+ 
