@@ -24,6 +24,12 @@ export default async function VendorsPage({ searchParams }: PageProps) {
   let query = supabase
     .from("vendors")
     .select("*")
+    // Same fix as /api/vendors/route.ts: vendors have no status column, so
+    // this is the actual enforcement point of "agents never publish" for
+    // this table — without it, unreviewed agent-drafted vendors (is_verified
+    // defaults false) were publicly visible the instant they were inserted.
+    // See 06-Known-Issues-and-Roadmap.md and 07-Autonomous-Agents.md.
+    .eq("is_verified", true)
     .order("is_featured", { ascending: false })
     .order("rating", { ascending: false });
 
