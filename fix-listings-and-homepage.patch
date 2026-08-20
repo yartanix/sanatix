@@ -1,0 +1,881 @@
+diff --git a/src/app/[locale]/(main)/events/[id]/page.tsx b/src/app/[locale]/(main)/events/[id]/page.tsx
+index edfef27..0a6a71a 100644
+--- a/src/app/[locale]/(main)/events/[id]/page.tsx
++++ b/src/app/[locale]/(main)/events/[id]/page.tsx
+@@ -1,15 +1,165 @@
++import { createClient } from "@/lib/supabase/server";
+ import { notFound } from "next/navigation";
++import { getLocale, getTranslations } from "next-intl/server";
++import { Calendar, MapPin, Share2, Heart } from "lucide-react";
++import Navbar from "@/components/layout/Navbar";
++import TicketSelector from "@/components/events/TicketSelector";
++import { formatDate, formatDateTime } from "@/lib/utils";
+ 
+-interface PageProps {
++interface EventPageProps {
+   params: Promise<{ locale: string; id: string }>;
+ }
+ 
+-export default async function EventPage({ params }: PageProps) {
+-  const { id, locale } = await params;
+-  if (!id) notFound();
++export default async function EventPage({ params }: EventPageProps) {
++  const { id } = await params;
++  const locale = await getLocale();
++  const t = await getTranslations();
++  const supabase = await createClient();
++
++  const { data: event } = await supabase
++    .from("events")
++    .select(`*, profiles(full_name), ticket_types(*)`)
++    .eq("id", id)
++    .eq("status", "published")
++    .single();
++
++  if (!event) notFound();
++
++  const title = locale === "ar" ? event.title_ar : event.title_en;
++  const description = locale === "ar" ? event.description_ar : event.description_en;
++  const isRTL = locale === "ar";
++
+   return (
+-    <div className="min-h-screen flex items-center justify-center">
+-      <p>Event {id} — coming soon</p>
++    <div className="min-h-screen bg-brand-warm-white">
++      <Navbar />
++
++      {/* Cover image */}
++      <div className="w-full h-72 md:h-96 bg-brand-sand relative overflow-hidden">
++        {event.cover_image ? (
++          <img src={event.cover_image} alt={title} className="w-full h-full object-cover" />
++        ) : (
++          <div className="w-full h-full flex items-center justify-center">
++            <svg width="60" height="60" viewBox="0 0 34 34" fill="none" opacity="0.15">
++              <circle cx="6"  cy="28" r="3"   fill="#C8973A"/>
++              <circle cx="16" cy="18" r="4.5" fill="#C8973A"/>
++              <circle cx="28" cy="6"  r="6"   fill="#C8973A"/>
++            </svg>
++          </div>
++        )}
++        <div className="absolute bottom-4 start-4">
++          <span className="bg-brand-midnight/80 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm capitalize">
++            {event.category}
++          </span>
++        </div>
++      </div>
++
++      <div className="max-w-6xl mx-auto px-6 py-8">
++        <div className="grid lg:grid-cols-3 gap-8">
++
++          {/* Left — Event info */}
++          <div className="lg:col-span-2 space-y-6">
++
++            {/* Title + actions */}
++            <div className="flex items-start justify-between gap-4">
++              <div>
++                {event.is_featured && (
++                  <span className="text-xs bg-brand-gold/10 text-brand-gold px-2.5 py-1 rounded-full font-medium mb-2 inline-block">
++                    {t("events.featured")}
++                  </span>
++                )}
++                <h1 className="text-2xl md:text-3xl font-medium text-brand-midnight leading-snug">
++                  {title}
++                </h1>
++              </div>
++              <div className="flex items-center gap-2 shrink-0">
++                <button className="p-2.5 rounded-xl border border-black/10 bg-white hover:bg-brand-sand transition-colors">
++                  <Heart size={18} className="text-brand-ink/50" />
++                </button>
++                <button className="p-2.5 rounded-xl border border-black/10 bg-white hover:bg-brand-sand transition-colors">
++                  <Share2 size={18} className="text-brand-ink/50" />
++                </button>
++              </div>
++            </div>
++
++            {/* Meta info */}
++            <div className="bg-white rounded-2xl border border-black/5 p-5 space-y-3">
++              <div className="flex items-center gap-3 text-sm text-brand-ink/70">
++                <div className="w-9 h-9 rounded-xl bg-brand-gold/10 flex items-center justify-center shrink-0">
++                  <Calendar size={16} className="text-brand-gold" />
++                </div>
++                <div>
++                  <p className="font-medium text-brand-midnight">
++                    {formatDate(event.starts_at, isRTL ? "ar-SA" : "en-US")}
++                  </p>
++                  <p className="text-xs text-brand-ink/50">
++                    {formatDateTime(event.starts_at, isRTL ? "ar-SA" : "en-US")}
++                    {" — "}
++                    {formatDateTime(event.ends_at, isRTL ? "ar-SA" : "en-US")}
++                  </p>
++                </div>
++              </div>
++
++              <div className="flex items-center gap-3 text-sm text-brand-ink/70">
++                <div className="w-9 h-9 rounded-xl bg-brand-gold/10 flex items-center justify-center shrink-0">
++                  <MapPin size={16} className="text-brand-gold" />
++                </div>
++                <div>
++                  <p className="font-medium text-brand-midnight">{event.venue_name || t("events.title")}</p>
++                  <p className="text-xs text-brand-ink/50">{event.venue_city}</p>
++                </div>
++              </div>
++            </div>
++
++            {/* Description */}
++            {description && (
++              <div>
++                <h2 className="text-lg font-medium text-brand-midnight mb-3">
++                  {isRTL ? "عن الفعالية" : "About this event"}
++                </h2>
++                <p className="text-sm text-brand-ink/70 leading-relaxed whitespace-pre-line">
++                  {description}
++                </p>
++              </div>
++            )}
++
++            {/* Organizer */}
++            {event.profiles && (
++              <div>
++                <h2 className="text-lg font-medium text-brand-midnight mb-3">
++                  {isRTL ? "المنظم" : "Organizer"}
++                </h2>
++                <div className="flex items-center gap-3 bg-white rounded-2xl border border-black/5 p-4">
++                  <div className="w-11 h-11 rounded-xl bg-brand-gold/10 flex items-center justify-center font-medium text-brand-gold">
++                    {event.profiles.full_name?.charAt(0) ?? "S"}
++                  </div>
++                  <div>
++                    <p className="text-sm font-medium text-brand-midnight">
++                      {event.profiles.full_name ?? "Sanatix Organizer"}
++                    </p>
++                    <p className="text-xs text-brand-ink/50">
++                      {isRTL ? "منظم فعاليات" : "Event Organizer"}
++                    </p>
++                  </div>
++                </div>
++              </div>
++            )}
++
++          </div>
++
++          {/* Right — Ticket selector (sticky) */}
++          <div className="lg:col-span-1">
++            <div className="sticky top-24">
++              <TicketSelector
++                eventId={event.id}
++                ticketTypes={event.ticket_types ?? []}
++                isFree={event.is_free ?? false}
++                locale={locale}
++              />
++            </div>
++          </div>
++
++        </div>
++      </div>
+     </div>
+   );
+ }
+diff --git a/src/app/[locale]/(main)/events/page.tsx b/src/app/[locale]/(main)/events/page.tsx
+index 1e61378..c6abe7f 100644
+--- a/src/app/[locale]/(main)/events/page.tsx
++++ b/src/app/[locale]/(main)/events/page.tsx
+@@ -1,13 +1,55 @@
+-import { useTranslations } from "next-intl";
+-import { Search, SlidersHorizontal } from "lucide-react";
++import { createClient } from "@/lib/supabase/server";
++import { getLocale, getTranslations } from "next-intl/server";
++import { Link } from "@/i18n/routing";
++import { Search, CalendarDays, MapPin } from "lucide-react";
+ import Navbar from "@/components/layout/Navbar";
++import { formatCurrency, formatDate } from "@/lib/utils";
++import { EVENT_CATEGORIES, EVENT_CATEGORY_LABEL } from "@/lib/constants";
+ 
+-const CATEGORIES = [
+-  "all", "music", "sports", "art", "food", "business", "family", "tech", "fashion"
+-];
++interface PageProps {
++  searchParams: Promise<{ category?: string; city?: string; q?: string; page?: string }>;
++}
++
++const PAGE_SIZE = 12;
++
++export default async function EventsPage({ searchParams }: PageProps) {
++  const { category, city, q, page: pageParam } = await searchParams;
++  const page = Math.max(1, parseInt(pageParam ?? "1") || 1);
++  const offset = (page - 1) * PAGE_SIZE;
++
++  const locale = await getLocale();
++  const t = await getTranslations();
++  const isRTL = locale === "ar";
++  const supabase = await createClient();
++
++  let query = supabase
++    .from("events")
++    .select("id, title_ar, title_en, cover_image, starts_at, venue_city, category, is_featured, ticket_types(price, currency)", { count: "exact" })
++    .eq("status", "published")
++    .order("starts_at", { ascending: true })
++    .range(offset, offset + PAGE_SIZE - 1);
+ 
+-export default function EventsPage() {
+-  const t = useTranslations();
++  if (city)     query = query.eq("venue_city", city);
++  if (category) query = query.eq("category", category);
++  if (q)        query = query.or(`title_ar.ilike.%${q}%,title_en.ilike.%${q}%`);
++
++  const [{ data: events, count }, { data: cityRows }] = await Promise.all([
++    query,
++    supabase.from("events").select("venue_city").eq("status", "published"),
++  ]);
++
++  const cities = Array.from(new Set((cityRows ?? []).map((r) => r.venue_city).filter(Boolean))).sort();
++  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
++
++  function buildHref(overrides: Record<string, string | undefined>) {
++    const params = new URLSearchParams();
++    const next = { category, city, q, ...overrides };
++    if (next.category) params.set("category", next.category);
++    if (next.city) params.set("city", next.city);
++    if (next.q) params.set("q", next.q);
++    const qs = params.toString();
++    return qs ? `/events?${qs}` : "/events";
++  }
+ 
+   return (
+     <div className="min-h-screen bg-brand-warm-white">
+@@ -18,70 +60,164 @@ export default function EventsPage() {
+         {/* Header */}
+         <div className="mb-8">
+           <h1 className="text-3xl font-medium text-brand-midnight mb-2">{t("events.title")}</h1>
+-          <p className="text-brand-ink/55 text-sm">Discover events happening across the GCC</p>
++          <p className="text-brand-ink/55 text-sm">
++            {isRTL ? "اكتشف الفعاليات في جميع أنحاء الخليج" : "Discover events happening across the GCC"}
++          </p>
+         </div>
+ 
+-        {/* Search + Filter bar */}
+-        <div className="flex gap-3 mb-6">
++        {/* Search */}
++        <form action="/events" method="GET" className="flex gap-3 mb-6">
++          {category && <input type="hidden" name="category" value={category} />}
++          {city && <input type="hidden" name="city" value={city} />}
+           <div className="relative flex-1">
+             <Search className="absolute start-4 top-1/2 -translate-y-1/2 text-brand-ink/35 w-4 h-4" />
+             <input
+               type="text"
++              name="q"
++              defaultValue={q ?? ""}
+               placeholder={t("home.searchPlaceholder")}
+               className="w-full ps-11 pe-4 py-3 rounded-xl border border-black/10 bg-white text-sm text-brand-midnight placeholder:text-brand-ink/35 focus:outline-none focus:ring-2 focus:ring-brand-gold/30"
+             />
+           </div>
+-          <button className="flex items-center gap-2 px-4 py-3 rounded-xl border border-black/10 bg-white text-sm text-brand-ink/70 hover:bg-brand-sand transition-colors">
+-            <SlidersHorizontal size={15} />
+-            {t("events.filters")}
++          <button type="submit" className="px-5 py-3 rounded-xl bg-brand-midnight text-white text-sm font-medium hover:bg-brand-ink transition-colors">
++            {t("common.search")}
+           </button>
+-        </div>
++        </form>
+ 
+         {/* Category chips */}
+-        <div className="flex gap-2 overflow-x-auto pb-2 mb-8 scrollbar-hide">
+-          {CATEGORIES.map((cat) => (
+-            <button
++        <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
++          <Link
++            href={buildHref({ category: undefined })}
++            className={`shrink-0 px-4 py-2 rounded-full text-sm border transition-colors ${
++              !category ? "bg-brand-midnight text-white border-brand-midnight" : "bg-white text-brand-ink/65 border-black/10 hover:border-brand-gold/50"
++            }`}
++          >
++            {isRTL ? "الكل" : "All Events"}
++          </Link>
++          {EVENT_CATEGORIES.map((cat) => (
++            <Link
+               key={cat}
++              href={buildHref({ category: cat })}
+               className={`shrink-0 px-4 py-2 rounded-full text-sm border transition-colors capitalize ${
+-                cat === "all"
+-                  ? "bg-brand-midnight text-white border-brand-midnight"
+-                  : "bg-white text-brand-ink/65 border-black/10 hover:border-brand-gold/50"
++                category === cat ? "bg-brand-midnight text-white border-brand-midnight" : "bg-white text-brand-ink/65 border-black/10 hover:border-brand-gold/50"
+               }`}
+             >
+-              {cat === "all" ? "All Events" : cat}
+-            </button>
++              {isRTL ? EVENT_CATEGORY_LABEL[cat].ar : EVENT_CATEGORY_LABEL[cat].en}
++            </Link>
+           ))}
+         </div>
+ 
+         {/* City tabs */}
+-        <div className="flex gap-6 border-b border-black/8 mb-8 text-sm">
+-          {["All Cities", "Riyadh", "Jeddah", "Dubai", "Abu Dhabi", "Kuwait"].map((city) => (
+-            <button
+-              key={city}
+-              className={`pb-3 border-b-2 transition-colors ${
+-                city === "All Cities"
+-                  ? "border-brand-gold text-brand-midnight font-medium -mb-px"
+-                  : "border-transparent text-brand-ink/50 hover:text-brand-midnight"
++        {cities.length > 0 && (
++          <div className="flex gap-6 border-b border-black/8 mb-8 text-sm overflow-x-auto">
++            <Link
++              href={buildHref({ city: undefined })}
++              className={`pb-3 border-b-2 transition-colors shrink-0 ${
++                !city ? "border-brand-gold text-brand-midnight font-medium -mb-px" : "border-transparent text-brand-ink/50 hover:text-brand-midnight"
+               }`}
+             >
+-              {city}
+-            </button>
+-          ))}
+-        </div>
++              {isRTL ? "كل المدن" : "All Cities"}
++            </Link>
++            {cities.map((c) => (
++              <Link
++                key={c}
++                href={buildHref({ city: c })}
++                className={`pb-3 border-b-2 transition-colors shrink-0 ${
++                  city === c ? "border-brand-gold text-brand-midnight font-medium -mb-px" : "border-transparent text-brand-ink/50 hover:text-brand-midnight"
++                }`}
++              >
++                {c}
++              </Link>
++            ))}
++          </div>
++        )}
+ 
+-        {/* Events grid — skeleton placeholders */}
+-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+-          {Array.from({ length: 9 }).map((_, i) => (
+-            <div key={i} className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+-              <div className="h-44 bg-brand-sand animate-pulse" />
+-              <div className="p-4 space-y-2">
+-                <div className="h-4 bg-brand-sand rounded-lg w-3/4 animate-pulse" />
+-                <div className="h-3 bg-brand-sand rounded-lg w-1/2 animate-pulse" />
+-                <div className="h-3 bg-brand-sand rounded-lg w-2/5 animate-pulse" />
+-              </div>
+-            </div>
+-          ))}
+-        </div>
++        {/* Results */}
++        {!events || events.length === 0 ? (
++          <div className="bg-white rounded-2xl border border-black/5 p-16 text-center">
++            <p className="text-brand-ink/60 text-sm">
++              {isRTL ? "لا توجد فعاليات مطابقة" : "No events match these filters"}
++            </p>
++          </div>
++        ) : (
++          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
++            {events.map((event) => {
++              const title = isRTL ? event.title_ar : event.title_en;
++              const prices = (event.ticket_types ?? []).map((tt) => tt.price);
++              const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
++              const currency = event.ticket_types?.[0]?.currency ?? "SAR";
++              return (
++                <Link
++                  key={event.id}
++                  href={`/events/${event.id}`}
++                  className="bg-white rounded-2xl border border-black/5 overflow-hidden hover:shadow-md transition-shadow"
++                >
++                  <div className="h-44 bg-brand-sand relative overflow-hidden">
++                    {event.cover_image ? (
++                      // eslint-disable-next-line @next/next/no-img-element
++                      <img src={event.cover_image} alt={title} className="w-full h-full object-cover" />
++                    ) : (
++                      <div className="w-full h-full flex items-center justify-center">
++                        <svg width="40" height="40" viewBox="0 0 34 34" fill="none" opacity="0.15">
++                          <circle cx="6" cy="28" r="3" fill="#C8973A" />
++                          <circle cx="16" cy="18" r="4.5" fill="#C8973A" />
++                          <circle cx="28" cy="6" r="6" fill="#C8973A" />
++                        </svg>
++                      </div>
++                    )}
++                    {event.is_featured && (
++                      <span className="absolute top-3 start-3 text-xs bg-brand-gold text-white px-2.5 py-1 rounded-full font-medium">
++                        {t("events.featured")}
++                      </span>
++                    )}
++                  </div>
++                  <div className="p-4">
++                    <p className="font-medium text-brand-midnight text-sm mb-1.5 truncate">{title}</p>
++                    <div className="flex items-center gap-1.5 text-xs text-brand-ink/50 mb-1">
++                      <CalendarDays size={12} />
++                      {formatDate(event.starts_at, isRTL ? "ar-SA" : "en-US")}
++                    </div>
++                    {event.venue_city && (
++                      <div className="flex items-center gap-1.5 text-xs text-brand-ink/50 mb-2">
++                        <MapPin size={12} />
++                        {event.venue_city}
++                      </div>
++                    )}
++                    <p className="text-sm font-medium text-brand-gold">
++                      {minPrice === 0 ? t("events.free") : formatCurrency(minPrice, currency, isRTL ? "ar-SA" : "en-US")}
++                    </p>
++                  </div>
++                </Link>
++              );
++            })}
++          </div>
++        )}
++
++        {/* Pagination */}
++        {totalPages > 1 && (
++          <div className="flex items-center justify-center gap-2 mt-10">
++            {Array.from({ length: totalPages }).map((_, i) => {
++              const p = i + 1;
++              const params = new URLSearchParams();
++              if (category) params.set("category", category);
++              if (city) params.set("city", city);
++              if (q) params.set("q", q);
++              if (p > 1) params.set("page", String(p));
++              const qs = params.toString();
++              return (
++                <Link
++                  key={p}
++                  href={qs ? `/events?${qs}` : "/events"}
++                  className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
++                    p === page ? "bg-brand-midnight text-white" : "bg-white border border-black/10 text-brand-ink/60 hover:bg-brand-sand"
++                  }`}
++                >
++                  {p}
++                </Link>
++              );
++            })}
++          </div>
++        )}
+ 
+       </div>
+     </div>
+diff --git a/src/app/[locale]/(main)/vendors/page.tsx b/src/app/[locale]/(main)/vendors/page.tsx
+index 41b5967..e9f2027 100644
+--- a/src/app/[locale]/(main)/vendors/page.tsx
++++ b/src/app/[locale]/(main)/vendors/page.tsx
+@@ -1,14 +1,47 @@
+-import { useTranslations } from "next-intl";
+-import { Search } from "lucide-react";
++import { createClient } from "@/lib/supabase/server";
++import { getLocale, getTranslations } from "next-intl/server";
++import { Link } from "@/i18n/routing";
++import { Search, MapPin, Star } from "lucide-react";
+ import Navbar from "@/components/layout/Navbar";
++import { VENDOR_CATEGORIES, VENDOR_CATEGORY_LABEL } from "@/lib/constants";
+ 
+-const VENDOR_CATEGORIES = [
+-  "all", "catering", "photography", "decoration", "sound & lighting",
+-  "venue", "entertainment", "flowers", "transport", "printing"
+-];
++interface PageProps {
++  searchParams: Promise<{ category?: string; city?: string; q?: string }>;
++}
++
++export default async function VendorsPage({ searchParams }: PageProps) {
++  const { category, city, q } = await searchParams;
++  const locale = await getLocale();
++  const t = await getTranslations();
++  const isRTL = locale === "ar";
++  const supabase = await createClient();
++
++  // Select "*" rather than naming every column explicitly: logo/is_verified
++  // aren't exercised anywhere else in the codebase, so their existence on
++  // the live schema isn't confirmed (there's no tracked migration file for
++  // this table) — a wildcard select degrades gracefully to `undefined`
++  // instead of erroring the whole query if a column turns out missing.
++  let query = supabase
++    .from("vendors")
++    .select("*")
++    .order("is_featured", { ascending: false })
++    .order("rating", { ascending: false });
++
++  if (city)     query = query.eq("city", city);
++  if (category) query = query.eq("category", category);
++  if (q)        query = query.or(`name_ar.ilike.%${q}%,name_en.ilike.%${q}%`);
+ 
+-export default function VendorsPage() {
+-  const t = useTranslations();
++  const { data: vendors } = await query;
++
++  function buildHref(overrides: Record<string, string | undefined>) {
++    const params = new URLSearchParams();
++    const next = { category, city, q, ...overrides };
++    if (next.category) params.set("category", next.category);
++    if (next.city) params.set("city", next.city);
++    if (next.q) params.set("q", next.q);
++    const qs = params.toString();
++    return qs ? `/vendors?${qs}` : "/vendors";
++  }
+ 
+   return (
+     <div className="min-h-screen bg-brand-warm-white">
+@@ -19,50 +52,104 @@ export default function VendorsPage() {
+         {/* Header */}
+         <div className="mb-8">
+           <h1 className="text-3xl font-medium text-brand-midnight mb-2">{t("vendors.title")}</h1>
+-          <p className="text-brand-ink/55 text-sm">Find trusted event suppliers across the GCC</p>
++          <p className="text-brand-ink/55 text-sm">
++            {isRTL ? "اعثر على موردين موثوقين للفعاليات في الخليج" : "Find trusted event suppliers across the GCC"}
++          </p>
+         </div>
+ 
+         {/* Search */}
+-        <div className="relative max-w-xl mb-6">
++        <form action="/vendors" method="GET" className="relative max-w-xl mb-6">
++          {category && <input type="hidden" name="category" value={category} />}
++          {city && <input type="hidden" name="city" value={city} />}
+           <Search className="absolute start-4 top-1/2 -translate-y-1/2 text-brand-ink/35 w-4 h-4" />
+           <input
+             type="text"
+-            placeholder="Search vendors by name or service..."
++            name="q"
++            defaultValue={q ?? ""}
++            placeholder={isRTL ? "ابحث عن مورد بالاسم أو الخدمة..." : "Search vendors by name or service..."}
+             className="w-full ps-11 pe-4 py-3 rounded-xl border border-black/10 bg-white text-sm text-brand-midnight placeholder:text-brand-ink/35 focus:outline-none focus:ring-2 focus:ring-brand-gold/30"
+           />
+-        </div>
++        </form>
+ 
+         {/* Category chips */}
+         <div className="flex gap-2 overflow-x-auto pb-2 mb-8">
++          <Link
++            href={buildHref({ category: undefined })}
++            className={`shrink-0 px-4 py-2 rounded-full text-sm border transition-colors ${
++              !category ? "bg-brand-midnight text-white border-brand-midnight" : "bg-white text-brand-ink/65 border-black/10 hover:border-brand-gold/50"
++            }`}
++          >
++            {isRTL ? "كل الخدمات" : "All Services"}
++          </Link>
+           {VENDOR_CATEGORIES.map((cat) => (
+-            <button
++            <Link
+               key={cat}
++              href={buildHref({ category: cat })}
+               className={`shrink-0 px-4 py-2 rounded-full text-sm border transition-colors capitalize ${
+-                cat === "all"
+-                  ? "bg-brand-midnight text-white border-brand-midnight"
+-                  : "bg-white text-brand-ink/65 border-black/10 hover:border-brand-gold/50"
++                category === cat ? "bg-brand-midnight text-white border-brand-midnight" : "bg-white text-brand-ink/65 border-black/10 hover:border-brand-gold/50"
+               }`}
+             >
+-              {cat === "all" ? "All Services" : cat}
+-            </button>
++              {isRTL ? VENDOR_CATEGORY_LABEL[cat].ar : VENDOR_CATEGORY_LABEL[cat].en}
++            </Link>
+           ))}
+         </div>
+ 
+-        {/* Vendors grid — skeleton */}
+-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+-          {Array.from({ length: 8 }).map((_, i) => (
+-            <div key={i} className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+-              <div className="h-32 bg-brand-sand animate-pulse flex items-center justify-center">
+-                <div className="w-14 h-14 rounded-xl bg-brand-sand/80 animate-pulse" />
+-              </div>
+-              <div className="p-4 space-y-2">
+-                <div className="h-4 bg-brand-sand rounded-lg w-2/3 animate-pulse" />
+-                <div className="h-3 bg-brand-sand rounded-lg w-full animate-pulse" />
+-                <div className="h-3 bg-brand-sand rounded-lg w-3/4 animate-pulse" />
+-              </div>
+-            </div>
+-          ))}
+-        </div>
++        {/* Results */}
++        {!vendors || vendors.length === 0 ? (
++          <div className="bg-white rounded-2xl border border-black/5 p-16 text-center">
++            <p className="text-brand-ink/60 text-sm mb-1">
++              {isRTL ? "لا يوجد موردون بعد" : "No vendors yet"}
++            </p>
++            <p className="text-brand-ink/40 text-xs">
++              {isRTL ? "سيظهر الموردون هنا بمجرد انضمامهم للمنصة" : "Vendors will appear here once they join the platform"}
++            </p>
++          </div>
++        ) : (
++          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
++            {vendors.map((vendor) => {
++              const name = isRTL ? vendor.name_ar : vendor.name_en;
++              return (
++                <div key={vendor.id} className="bg-white rounded-2xl border border-black/5 overflow-hidden hover:shadow-md transition-shadow">
++                  <div className="h-32 bg-brand-sand flex items-center justify-center relative">
++                    {vendor.logo ? (
++                      // eslint-disable-next-line @next/next/no-img-element
++                      <img src={vendor.logo} alt={name} className="w-14 h-14 rounded-xl object-cover" />
++                    ) : (
++                      <div className="w-14 h-14 rounded-xl bg-brand-gold/10 flex items-center justify-center font-medium text-brand-gold text-lg">
++                        {name?.charAt(0) ?? "V"}
++                      </div>
++                    )}
++                    {vendor.is_verified && (
++                      <span className="absolute top-3 start-3 text-xs bg-emerald-500/90 text-white px-2 py-0.5 rounded-full font-medium">
++                        {t("vendors.verified")}
++                      </span>
++                    )}
++                  </div>
++                  <div className="p-4 space-y-1.5">
++                    <p className="font-medium text-brand-midnight text-sm truncate">{name}</p>
++                    <p className="text-xs text-brand-ink/50 capitalize">
++                      {VENDOR_CATEGORY_LABEL[vendor.category]?.[isRTL ? "ar" : "en"] ?? vendor.category}
++                    </p>
++                    <div className="flex items-center justify-between pt-1">
++                      {vendor.city && (
++                        <span className="flex items-center gap-1 text-xs text-brand-ink/40">
++                          <MapPin size={11} />
++                          {vendor.city}
++                        </span>
++                      )}
++                      {vendor.rating > 0 && (
++                        <span className="flex items-center gap-1 text-xs text-brand-ink/60">
++                          <Star size={11} className="fill-brand-gold text-brand-gold" />
++                          {vendor.rating.toFixed(1)}
++                        </span>
++                      )}
++                    </div>
++                  </div>
++                </div>
++              );
++            })}
++          </div>
++        )}
+ 
+       </div>
+     </div>
+diff --git a/src/app/[locale]/page.tsx b/src/app/[locale]/page.tsx
+index b9af06e..183cc61 100644
+--- a/src/app/[locale]/page.tsx
++++ b/src/app/[locale]/page.tsx
+@@ -1,49 +1,27 @@
+-import { useTranslations } from "next-intl";
+-import { Search } from "lucide-react";
++import { getLocale, getTranslations } from "next-intl/server";
++import { Search, CalendarDays, MapPin } from "lucide-react";
+ import { Link } from "@/i18n/routing";
++import { createClient } from "@/lib/supabase/server";
++import Navbar from "@/components/layout/Navbar";
++import { formatCurrency, formatDate } from "@/lib/utils";
+ 
+-export default function HomePage() {
+-  const t = useTranslations();
++export default async function HomePage() {
++  const locale = await getLocale();
++  const t = await getTranslations();
++  const isRTL = locale === "ar";
++  const supabase = await createClient();
++
++  const { data: featuredEvents } = await supabase
++    .from("events")
++    .select("id, title_ar, title_en, venue_city, cover_image, starts_at, is_free, ticket_types(price, currency)")
++    .eq("status", "published")
++    .order("is_featured", { ascending: false })
++    .order("view_count", { ascending: false })
++    .limit(3);
+ 
+   return (
+     <main className="min-h-screen bg-brand-warm-white">
+-
+-      {/* Navbar */}
+-      <nav className="sticky top-0 z-50 bg-brand-warm-white/90 backdrop-blur border-b border-black/5 px-6 py-4">
+-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+-          <div className="flex items-center gap-3">
+-            {/* Logo mark */}
+-            <svg width="32" height="32" viewBox="0 0 34 34" fill="none">
+-              <circle cx="6"  cy="28" r="3"   fill="#C8973A" opacity="0.45"/>
+-              <circle cx="16" cy="18" r="4.5" fill="#C8973A" opacity="0.72"/>
+-              <circle cx="28" cy="6"  r="6"   fill="#C8973A"/>
+-              <circle cx="28" cy="6"  r="10"  stroke="#C8973A" strokeWidth="0.75" opacity="0.22" strokeDasharray="2.5 2"/>
+-              <line x1="9"  y1="26" x2="13" y2="21" stroke="#C8973A" strokeWidth="0.85" opacity="0.42"/>
+-              <line x1="19" y1="15" x2="23" y2="10" stroke="#C8973A" strokeWidth="0.85" opacity="0.42"/>
+-            </svg>
+-            <span className="text-xl font-medium tracking-tight text-brand-midnight">sanatix</span>
+-          </div>
+-
+-          <div className="hidden md:flex items-center gap-8 text-sm text-brand-ink/70">
+-            <Link href="/events">{t("nav.events")}</Link>
+-            <Link href="/vendors">{t("nav.vendors")}</Link>
+-            <Link href="/organizers">{t("nav.organizers")}</Link>
+-            <Link href="/crowdfunding">{t("nav.crowdfunding")}</Link>
+-          </div>
+-
+-          <div className="flex items-center gap-3">
+-            <Link href="/login" className="text-sm text-brand-ink/70 hover:text-brand-midnight transition-colors">
+-              {t("common.login")}
+-            </Link>
+-            <Link
+-              href="/register"
+-              className="text-sm bg-brand-gold text-white px-4 py-2 rounded-full hover:bg-brand-gold/90 transition-colors"
+-            >
+-              {t("common.register")}
+-            </Link>
+-          </div>
+-        </div>
+-      </nav>
++      <Navbar />
+ 
+       {/* Hero */}
+       <section className="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
+@@ -55,39 +33,83 @@ export default function HomePage() {
+         </p>
+ 
+         {/* Search bar */}
+-        <div className="max-w-2xl mx-auto relative">
++        <form action="/events" method="GET" className="max-w-2xl mx-auto relative">
+           <Search className="absolute start-4 top-1/2 -translate-y-1/2 text-brand-ink/40 w-5 h-5" />
+           <input
+             type="text"
++            name="q"
+             placeholder={t("home.searchPlaceholder")}
+             className="w-full ps-12 pe-6 py-4 rounded-2xl border border-black/10 bg-white shadow-sm text-brand-midnight placeholder:text-brand-ink/40 focus:outline-none focus:ring-2 focus:ring-brand-gold/30 text-base"
+           />
+-        </div>
++        </form>
+       </section>
+ 
+-      {/* Featured Events placeholder */}
++      {/* Featured Events */}
+       <section className="max-w-6xl mx-auto px-6 pb-20">
+         <div className="flex items-center justify-between mb-6">
+           <h2 className="text-xl font-medium text-brand-midnight">{t("home.featuredEvents")}</h2>
+           <Link href="/events" className="text-sm text-brand-gold hover:underline">{t("common.viewAll")}</Link>
+         </div>
+ 
+-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+-          {[1, 2, 3].map((i) => (
+-            <div key={i} className="bg-white rounded-2xl border border-black/5 overflow-hidden hover:shadow-md transition-shadow">
+-              <div className="h-44 bg-brand-sand animate-pulse" />
+-              <div className="p-4">
+-                <div className="flex items-center gap-2 mb-2">
+-                  <span className="text-xs bg-brand-gold/10 text-brand-gold px-2.5 py-1 rounded-full font-medium">
+-                    {t("events.featured")}
+-                  </span>
+-                </div>
+-                <div className="h-4 bg-brand-sand rounded w-3/4 mb-2 animate-pulse" />
+-                <div className="h-3 bg-brand-sand rounded w-1/2 animate-pulse" />
+-              </div>
+-            </div>
+-          ))}
+-        </div>
++        {!featuredEvents || featuredEvents.length === 0 ? (
++          <div className="bg-white rounded-2xl border border-black/5 p-12 text-center">
++            <p className="text-brand-ink/50 text-sm">
++              {isRTL ? "لا توجد فعاليات منشورة بعد" : "No published events yet — check back soon"}
++            </p>
++          </div>
++        ) : (
++          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
++            {featuredEvents.map((event) => {
++              const title = isRTL ? event.title_ar : event.title_en;
++              const prices = (event.ticket_types ?? []).map((tt) => tt.price);
++              const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
++              const currency = event.ticket_types?.[0]?.currency ?? "SAR";
++              return (
++                <Link
++                  key={event.id}
++                  href={`/events/${event.id}`}
++                  className="bg-white rounded-2xl border border-black/5 overflow-hidden hover:shadow-md transition-shadow"
++                >
++                  <div className="h-44 bg-brand-sand overflow-hidden">
++                    {event.cover_image ? (
++                      // eslint-disable-next-line @next/next/no-img-element
++                      <img src={event.cover_image} alt={title} className="w-full h-full object-cover" />
++                    ) : (
++                      <div className="w-full h-full flex items-center justify-center">
++                        <svg width="40" height="40" viewBox="0 0 34 34" fill="none" opacity="0.15">
++                          <circle cx="6" cy="28" r="3" fill="#C8973A" />
++                          <circle cx="16" cy="18" r="4.5" fill="#C8973A" />
++                          <circle cx="28" cy="6" r="6" fill="#C8973A" />
++                        </svg>
++                      </div>
++                    )}
++                  </div>
++                  <div className="p-4">
++                    <div className="flex items-center gap-2 mb-2">
++                      <span className="text-xs bg-brand-gold/10 text-brand-gold px-2.5 py-1 rounded-full font-medium">
++                        {t("events.featured")}
++                      </span>
++                    </div>
++                    <p className="font-medium text-brand-midnight text-sm mb-1.5 truncate">{title}</p>
++                    <div className="flex items-center gap-1.5 text-xs text-brand-ink/50 mb-1">
++                      <CalendarDays size={12} />
++                      {formatDate(event.starts_at, isRTL ? "ar-SA" : "en-US")}
++                    </div>
++                    {event.venue_city && (
++                      <div className="flex items-center gap-1.5 text-xs text-brand-ink/50 mb-2">
++                        <MapPin size={12} />
++                        {event.venue_city}
++                      </div>
++                    )}
++                    <p className="text-sm font-medium text-brand-gold">
++                      {event.is_free || minPrice === 0 ? t("events.free") : formatCurrency(minPrice, currency, isRTL ? "ar-SA" : "en-US")}
++                    </p>
++                  </div>
++                </Link>
++              );
++            })}
++          </div>
++        )}
+       </section>
+ 
+     </main>
+diff --git a/src/components/organizer/EventForm.tsx b/src/components/organizer/EventForm.tsx
+index bf0d310..69ac52d 100644
+--- a/src/components/organizer/EventForm.tsx
++++ b/src/components/organizer/EventForm.tsx
+@@ -3,18 +3,8 @@
+ import { useState } from "react";
+ import { useRouter } from "next/navigation";
+ import TicketTypesManager from "@/components/organizer/TicketTypesManager";
++import { EVENT_CATEGORIES as CATEGORIES, EVENT_CATEGORY_LABEL as CATEGORY_LABEL } from "@/lib/constants";
+ 
+-const CATEGORIES = ["conference", "wedding", "exhibition", "sports", "entertainment", "family", "community", "corporate"];
+-const CATEGORY_LABEL: Record<string, { ar: string; en: string }> = {
+-  conference:    { ar: "مؤتمرات",   en: "Conferences" },
+-  wedding:       { ar: "أعراس",     en: "Weddings" },
+-  exhibition:    { ar: "معارض",     en: "Exhibitions" },
+-  sports:        { ar: "رياضة",     en: "Sports" },
+-  entertainment: { ar: "ترفيه",     en: "Entertainment" },
+-  family:        { ar: "عائلية",    en: "Family Events" },
+-  community:     { ar: "مجتمعية",   en: "Community Events" },
+-  corporate:     { ar: "شركات",     en: "Corporate Events" },
+-};
+ const COUNTRIES = ["SA", "AE", "BH", "KW", "QA"];
+ 
+ interface TicketType {
+diff --git a/src/lib/constants.ts b/src/lib/constants.ts
+new file mode 100644
+index 0000000..302bb08
+--- /dev/null
++++ b/src/lib/constants.ts
+@@ -0,0 +1,37 @@
++// Shared taxonomy used by both the organizer event form and the public
++// events listing/filtering, so filter chips always match real event data.
++export const EVENT_CATEGORIES = [
++  "conference", "wedding", "exhibition", "sports",
++  "entertainment", "family", "community", "corporate",
++] as const;
++
++export const EVENT_CATEGORY_LABEL: Record<string, { ar: string; en: string }> = {
++  conference:    { ar: "مؤتمرات",   en: "Conferences" },
++  wedding:       { ar: "أعراس",     en: "Weddings" },
++  exhibition:    { ar: "معارض",     en: "Exhibitions" },
++  sports:        { ar: "رياضة",     en: "Sports" },
++  entertainment: { ar: "ترفيه",     en: "Entertainment" },
++  family:        { ar: "عائلية",    en: "Family Events" },
++  community:     { ar: "مجتمعية",   en: "Community Events" },
++  corporate:     { ar: "شركات",     en: "Corporate Events" },
++};
++
++// Vendors don't have a real onboarding flow yet, so there's no live data to
++// derive this from — kept as a reasonable placeholder taxonomy for the
++// filter chips until a supplier registration form exists.
++export const VENDOR_CATEGORIES = [
++  "catering", "photography", "decoration", "sound-lighting",
++  "venue", "entertainment", "flowers", "transport", "printing",
++] as const;
++
++export const VENDOR_CATEGORY_LABEL: Record<string, { ar: string; en: string }> = {
++  catering:        { ar: "ضيافة",         en: "Catering" },
++  photography:     { ar: "تصوير",         en: "Photography" },
++  decoration:      { ar: "ديكور",         en: "Decoration" },
++  "sound-lighting": { ar: "صوت وإضاءة",   en: "Sound & Lighting" },
++  venue:           { ar: "قاعات",         en: "Venues" },
++  entertainment:   { ar: "ترفيه",         en: "Entertainment" },
++  flowers:         { ar: "ورد",           en: "Flowers" },
++  transport:       { ar: "نقل",           en: "Transport" },
++  printing:        { ar: "طباعة",         en: "Printing" },
++};

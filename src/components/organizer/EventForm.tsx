@@ -3,18 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import TicketTypesManager from "@/components/organizer/TicketTypesManager";
+import { EVENT_CATEGORIES as CATEGORIES, EVENT_CATEGORY_LABEL as CATEGORY_LABEL } from "@/lib/constants";
 
-const CATEGORIES = ["conference", "wedding", "exhibition", "sports", "entertainment", "family", "community", "corporate"];
-const CATEGORY_LABEL: Record<string, { ar: string; en: string }> = {
-  conference:    { ar: "مؤتمرات",   en: "Conferences" },
-  wedding:       { ar: "أعراس",     en: "Weddings" },
-  exhibition:    { ar: "معارض",     en: "Exhibitions" },
-  sports:        { ar: "رياضة",     en: "Sports" },
-  entertainment: { ar: "ترفيه",     en: "Entertainment" },
-  family:        { ar: "عائلية",    en: "Family Events" },
-  community:     { ar: "مجتمعية",   en: "Community Events" },
-  corporate:     { ar: "شركات",     en: "Corporate Events" },
-};
 const COUNTRIES = ["SA", "AE", "BH", "KW", "QA"];
 
 interface TicketType {
