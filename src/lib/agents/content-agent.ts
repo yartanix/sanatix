@@ -68,7 +68,14 @@ async function researchAndExtractJson(prompt: string, maxSearches: number): Prom
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    // 4096 was too tight in practice: with up to `maxSearches` web searches
+    // plus a prose summary before the JSON block, the model was observed
+    // getting cut off mid-sentence before ever reaching the fenced ```json
+    // block — which surfaced as "No JSON array found in model output" even
+    // though the model was cooperating correctly, it simply ran out of
+    // room. 8192 gives real headroom for 8 searches + summary + a 5-item
+    // JSON array. See CHANGES.md.
+    max_tokens: 8192,
     tools: [
       {
         type: "web_search_20250305",
@@ -88,7 +95,18 @@ async function researchAndExtractJson(prompt: string, maxSearches: number): Prom
   const candidate = fenced ? fenced[1] : text.slice(text.indexOf("["), text.lastIndexOf("]") + 1);
 
   if (!candidate || candidate.trim().length === 0) {
-    throw new Error(`No JSON array found in model output. Raw text: ${text.slice(0, 500)}`);
+    // stop_reason "max_tokens" means the response was truncated by the
+    // token budget above, not that the model refused/failed to comply —
+    // surfacing it here means the next failure is diagnosable from
+    // agent_runs.error_message alone, without needing to re-derive it from
+    // raw text the way this exact bug had to be the first time.
+    const truncationNote =
+      response.stop_reason === "max_tokens"
+        ? " (response was cut off at max_tokens — the model ran out of room before reaching the JSON block)"
+        : "";
+    throw new Error(
+      `No JSON array found in model output${truncationNote}. stop_reason=${response.stop_reason}. Raw text: ${text.slice(0, 500)}`
+    );
   }
 
   const parsed = JSON.parse(candidate);
@@ -113,7 +131,7 @@ For each event you can verify, extract:
 - is_free (boolean)
 - source_url — the exact URL where you found this event
 
-Respond with a short summary of your research, then end your response with ONLY a fenced \`\`\`json code block containing a JSON array of objects with exactly these fields. If you find zero verifiable events, output an empty array \`[]\`.`;
+Respond with AT MOST one or two sentences summarizing your research, then immediately end your response with ONLY a fenced \`\`\`json code block containing a JSON array of objects with exactly these fields. Do not write a long summary — the JSON block is the only part that matters, and a long summary risks the response being cut off before you reach it. If you find zero verifiable events, output an empty array \`[]\`.`;
 }
 
 function vendorDiscoveryPrompt(count: number): string {
@@ -129,7 +147,7 @@ For each business you can verify, extract:
 - website_url, instagram_url, whatsapp (each nullable — only include if you actually found it)
 - source_url — the exact URL where you found this business
 
-Respond with a short summary of your research, then end your response with ONLY a fenced \`\`\`json code block containing a JSON array of objects with exactly these fields. If you find zero verifiable businesses, output an empty array \`[]\`.`;
+Respond with AT MOST one or two sentences summarizing your research, then immediately end your response with ONLY a fenced \`\`\`json code block containing a JSON array of objects with exactly these fields. Do not write a long summary — the JSON block is the only part that matters, and a long summary risks the response being cut off before you reach it. If you find zero verifiable businesses, output an empty array \`[]\`.`;
 }
 
 async function insertEventDrafts(drafts: EventDraft[], organizerId: string) {
@@ -233,6 +251,11 @@ export interface ContentAgentResult {
   vendorsSkipped: number;
   eventsFoundInvalid: number;
   vendorsFoundInvalid: number;
+  // Non-fatal: populated when one category's research call failed (e.g. a
+  // truncated/unparseable response) but the run continued with whichever
+  // category succeeded, rather than discarding both. Empty when both
+  // categories' research completed cleanly.
+  researchErrors: string[];
 }
 
 export async function runContentAgent(opts?: { eventCount?: number; vendorCount?: number }): Promise<ContentAgentResult> {
@@ -241,10 +264,36 @@ export async function runContentAgent(opts?: { eventCount?: number; vendorCount?
 
   const systemProfileId = await getOrCreateContentAgentProfileId();
 
-  const [rawEvents, rawVendors] = await Promise.all([
+  // Promise.allSettled, not Promise.all: each research call is independent,
+  // and a failure in one category (e.g. events) must not throw away a
+  // perfectly good result from the other (e.g. vendors). The previous
+  // Promise.all meant a single truncated/unparseable response anywhere
+  // failed the entire run with zero inserts, even when the other category
+  // had already produced valid, insertable drafts. See CHANGES.md.
+  const [eventsSettled, vendorsSettled] = await Promise.allSettled([
     researchAndExtractJson(eventDiscoveryPrompt(eventCount), 8),
     researchAndExtractJson(vendorDiscoveryPrompt(vendorCount), 8),
   ]);
+
+  const researchErrors: string[] = [];
+
+  let rawEvents: unknown[] = [];
+  if (eventsSettled.status === "fulfilled") {
+    rawEvents = eventsSettled.value;
+  } else {
+    const msg = eventsSettled.reason instanceof Error ? eventsSettled.reason.message : String(eventsSettled.reason);
+    researchErrors.push(`Event research failed: ${msg}`);
+    console.error("[content-agent] event research failed:", eventsSettled.reason);
+  }
+
+  let rawVendors: unknown[] = [];
+  if (vendorsSettled.status === "fulfilled") {
+    rawVendors = vendorsSettled.value;
+  } else {
+    const msg = vendorsSettled.reason instanceof Error ? vendorsSettled.reason.message : String(vendorsSettled.reason);
+    researchErrors.push(`Vendor research failed: ${msg}`);
+    console.error("[content-agent] vendor research failed:", vendorsSettled.reason);
+  }
 
   const validEvents: EventDraft[] = [];
   let eventsFoundInvalid = 0;
@@ -272,5 +321,6 @@ export async function runContentAgent(opts?: { eventCount?: number; vendorCount?
     vendorsSkipped: vendorResult.skipped,
     eventsFoundInvalid,
     vendorsFoundInvalid,
+    researchErrors,
   };
 }
