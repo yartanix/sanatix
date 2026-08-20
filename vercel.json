@@ -4,6 +4,9 @@
   "devCommand": "next dev",
   "installCommand": "npm install",
   "regions": ["bom1"],
+  "crons": [
+    { "path": "/api/cron/content-agent", "schedule": "0 6 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
