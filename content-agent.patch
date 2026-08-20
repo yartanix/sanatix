@@ -1,0 +1,1056 @@
+diff --git a/.env.local.example b/.env.local.example
+index 449ba9a..3e79320 100644
+--- a/.env.local.example
++++ b/.env.local.example
+@@ -9,6 +9,16 @@ NEXT_PUBLIC_DEFAULT_LOCALE=ar
+ 
+ # ─── Anthropic ──────────────────────────────────────────────
+ ANTHROPIC_API_KEY=your-anthropic-key
++ANTHROPIC_MODEL=claude-sonnet-5
++
++# ─── Agents (see docs/06-Autonomous-Agents.md) ───────────────
++# Generate with: openssl rand -base64 32
++# Set the SAME value in Vercel's project env vars — Vercel then sends it
++# automatically as "Authorization: Bearer <value>" on every cron-triggered
++# request, which the cron routes check. Without it, the routes still work
++# but are unauthenticated (anyone with the URL could trigger a paid agent
++# run) — the routes log a warning if it's missing.
++CRON_SECRET=
+ 
+ # ─── Payments ───────────────────────────────────────────────
+ HYPERPAY_ACCESS_TOKEN=
+diff --git a/package-lock.json b/package-lock.json
+index 5716895..961a4d4 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -8,6 +8,7 @@
+       "name": "sanatix",
+       "version": "0.1.0",
+       "dependencies": {
++        "@anthropic-ai/sdk": "^0.120.0",
+         "@hookform/resolvers": "^3.9.1",
+         "@supabase/ssr": "^0.5.2",
+         "@supabase/supabase-js": "^2.47.10",
+@@ -47,6 +48,36 @@
+         "url": "https://github.com/sponsors/sindresorhus"
+       }
+     },
++    "node_modules/@anthropic-ai/sdk": {
++      "version": "0.120.0",
++      "resolved": "https://registry.npmjs.org/@anthropic-ai/sdk/-/sdk-0.120.0.tgz",
++      "integrity": "sha512-ZlvmNFT/iIF6JD13rxbbMWD8nvGR0RaUp6yMQnoc+4Af0YjVVe/bIdW1XSQQsoxXAtg1NaT6Vak0LKFlJ4d37Q==",
++      "license": "MIT",
++      "dependencies": {
++        "json-schema-to-ts": "^3.1.1",
++        "standardwebhooks": "^1.0.0"
++      },
++      "bin": {
++        "anthropic-ai-sdk": "bin/cli"
++      },
++      "peerDependencies": {
++        "zod": "^3.25.0 || ^4.0.0"
++      },
++      "peerDependenciesMeta": {
++        "zod": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/@babel/runtime": {
++      "version": "7.29.7",
++      "resolved": "https://registry.npmjs.org/@babel/runtime/-/runtime-7.29.7.tgz",
++      "integrity": "sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==",
++      "license": "MIT",
++      "engines": {
++        "node": ">=6.9.0"
++      }
++    },
+     "node_modules/@emnapi/core": {
+       "version": "1.10.0",
+       "resolved": "https://registry.npmjs.org/@emnapi/core/-/core-1.10.0.tgz",
+@@ -343,9 +374,6 @@
+       "cpu": [
+         "arm"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "LGPL-3.0-or-later",
+       "optional": true,
+       "os": [
+@@ -362,9 +390,6 @@
+       "cpu": [
+         "arm64"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "LGPL-3.0-or-later",
+       "optional": true,
+       "os": [
+@@ -381,9 +406,6 @@
+       "cpu": [
+         "ppc64"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "LGPL-3.0-or-later",
+       "optional": true,
+       "os": [
+@@ -400,9 +422,6 @@
+       "cpu": [
+         "riscv64"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "LGPL-3.0-or-later",
+       "optional": true,
+       "os": [
+@@ -419,9 +438,6 @@
+       "cpu": [
+         "s390x"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "LGPL-3.0-or-later",
+       "optional": true,
+       "os": [
+@@ -438,9 +454,6 @@
+       "cpu": [
+         "x64"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "LGPL-3.0-or-later",
+       "optional": true,
+       "os": [
+@@ -457,9 +470,6 @@
+       "cpu": [
+         "arm64"
+       ],
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "LGPL-3.0-or-later",
+       "optional": true,
+       "os": [
+@@ -476,9 +486,6 @@
+       "cpu": [
+         "x64"
+       ],
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "LGPL-3.0-or-later",
+       "optional": true,
+       "os": [
+@@ -495,9 +502,6 @@
+       "cpu": [
+         "arm"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "Apache-2.0",
+       "optional": true,
+       "os": [
+@@ -520,9 +524,6 @@
+       "cpu": [
+         "arm64"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "Apache-2.0",
+       "optional": true,
+       "os": [
+@@ -545,9 +546,6 @@
+       "cpu": [
+         "ppc64"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "Apache-2.0",
+       "optional": true,
+       "os": [
+@@ -570,9 +568,6 @@
+       "cpu": [
+         "riscv64"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "Apache-2.0",
+       "optional": true,
+       "os": [
+@@ -595,9 +590,6 @@
+       "cpu": [
+         "s390x"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "Apache-2.0",
+       "optional": true,
+       "os": [
+@@ -620,9 +612,6 @@
+       "cpu": [
+         "x64"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "Apache-2.0",
+       "optional": true,
+       "os": [
+@@ -645,9 +634,6 @@
+       "cpu": [
+         "arm64"
+       ],
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "Apache-2.0",
+       "optional": true,
+       "os": [
+@@ -670,9 +656,6 @@
+       "cpu": [
+         "x64"
+       ],
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "Apache-2.0",
+       "optional": true,
+       "os": [
+@@ -876,9 +859,6 @@
+       "cpu": [
+         "arm64"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -895,9 +875,6 @@
+       "cpu": [
+         "arm64"
+       ],
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -914,9 +891,6 @@
+       "cpu": [
+         "x64"
+       ],
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -933,9 +907,6 @@
+       "cpu": [
+         "x64"
+       ],
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -1036,6 +1007,12 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/@stablelib/base64": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/@stablelib/base64/-/base64-1.0.1.tgz",
++      "integrity": "sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==",
++      "license": "MIT"
++    },
+     "node_modules/@supabase/auth-js": {
+       "version": "2.112.3",
+       "resolved": "https://registry.npmjs.org/@supabase/auth-js/-/auth-js-2.112.3.tgz",
+@@ -1599,9 +1576,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -1616,9 +1590,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -1633,9 +1604,6 @@
+         "loong64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -1650,9 +1618,6 @@
+         "loong64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -1667,9 +1632,6 @@
+         "ppc64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -1684,9 +1646,6 @@
+         "riscv64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -1701,9 +1660,6 @@
+         "riscv64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -1718,9 +1674,6 @@
+         "s390x"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -1735,9 +1688,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -1752,9 +1702,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -3434,6 +3381,12 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/fast-sha256": {
++      "version": "1.3.0",
++      "resolved": "https://registry.npmjs.org/fast-sha256/-/fast-sha256-1.3.0.tgz",
++      "integrity": "sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==",
++      "license": "Unlicense"
++    },
+     "node_modules/fastq": {
+       "version": "1.20.1",
+       "resolved": "https://registry.npmjs.org/fastq/-/fastq-1.20.1.tgz",
+@@ -4467,6 +4420,19 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/json-schema-to-ts": {
++      "version": "3.1.1",
++      "resolved": "https://registry.npmjs.org/json-schema-to-ts/-/json-schema-to-ts-3.1.1.tgz",
++      "integrity": "sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==",
++      "license": "MIT",
++      "dependencies": {
++        "@babel/runtime": "^7.18.3",
++        "ts-algebra": "^2.0.0"
++      },
++      "engines": {
++        "node": ">=16"
++      }
++    },
+     "node_modules/json-schema-traverse": {
+       "version": "0.4.1",
+       "resolved": "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-0.4.1.tgz",
+@@ -5919,6 +5885,16 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/standardwebhooks": {
++      "version": "1.0.0",
++      "resolved": "https://registry.npmjs.org/standardwebhooks/-/standardwebhooks-1.0.0.tgz",
++      "integrity": "sha512-BbHGOQK9olHPMvQNHWul6MYlrRTAOKn03rOe4A8O3CLWhNf4YHBqq2HJKKC+sfqpxiBY52pNeesD6jIiLDz8jg==",
++      "license": "MIT",
++      "dependencies": {
++        "@stablelib/base64": "^1.0.0",
++        "fast-sha256": "^1.3.0"
++      }
++    },
+     "node_modules/stop-iteration-iterator": {
+       "version": "1.1.0",
+       "resolved": "https://registry.npmjs.org/stop-iteration-iterator/-/stop-iteration-iterator-1.1.0.tgz",
+@@ -6334,6 +6310,12 @@
+         "node": ">=8.0"
+       }
+     },
++    "node_modules/ts-algebra": {
++      "version": "2.0.0",
++      "resolved": "https://registry.npmjs.org/ts-algebra/-/ts-algebra-2.0.0.tgz",
++      "integrity": "sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw==",
++      "license": "MIT"
++    },
+     "node_modules/ts-api-utils": {
+       "version": "2.5.0",
+       "resolved": "https://registry.npmjs.org/ts-api-utils/-/ts-api-utils-2.5.0.tgz",
+diff --git a/package.json b/package.json
+index 3ff8ff2..cb40062 100644
+--- a/package.json
++++ b/package.json
+@@ -10,6 +10,7 @@
+     "type-check": "tsc --noEmit"
+   },
+   "dependencies": {
++    "@anthropic-ai/sdk": "^0.120.0",
+     "next": "^15.3.8",
+     "react": "^19.0.0",
+     "react-dom": "^19.0.0",
+diff --git a/src/app/api/cron/content-agent/route.ts b/src/app/api/cron/content-agent/route.ts
+new file mode 100644
+index 0000000..745f76d
+--- /dev/null
++++ b/src/app/api/cron/content-agent/route.ts
+@@ -0,0 +1,53 @@
++import { NextRequest, NextResponse } from "next/server";
++import { runContentAgent } from "@/lib/agents/content-agent";
++import { startAgentRun, finishAgentRun } from "@/lib/agents/run-log";
++
++export const maxDuration = 300; // seconds — web search + two Claude calls can take a while
++
++/**
++ * Triggered by Vercel Cron (see vercel.json) on a daily schedule, and
++ * callable manually (e.g. from the Vercel dashboard, or curl) for testing.
++ *
++ * Auth: Vercel automatically sends `Authorization: Bearer $CRON_SECRET`
++ * on cron-triggered requests once CRON_SECRET is set as an environment
++ * variable — this checks that header so the route can't be triggered by
++ * anyone who finds the URL. Manual/local testing needs the same header
++ * set explicitly (see CHANGES.md).
++ */
++export async function GET(req: NextRequest) {
++  const cronSecret = process.env.CRON_SECRET;
++  if (cronSecret) {
++    const authHeader = req.headers.get("authorization");
++    if (authHeader !== `Bearer ${cronSecret}`) {
++      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++    }
++  } else {
++    console.warn("[content-agent] CRON_SECRET is not set — route is unauthenticated. Set it before going live.");
++  }
++
++  const run = await startAgentRun("content-agent", { trigger: "cron" });
++
++  try {
++    const result = await runContentAgent();
++
++    const summary =
++      `Created ${result.eventsCreated} draft event(s), ${result.eventsSkipped} skipped (duplicate/insert error), ` +
++      `${result.eventsFoundInvalid} failed schema validation. ` +
++      `Created ${result.vendorsCreated} vendor(s), ${result.vendorsSkipped} skipped, ` +
++      `${result.vendorsFoundInvalid} failed schema validation.`;
++
++    await finishAgentRun(run.id, {
++      status: "success",
++      itemsCreated: result.eventsCreated + result.vendorsCreated,
++      itemsSkipped: result.eventsSkipped + result.vendorsSkipped,
++      summary,
++    });
++
++    return NextResponse.json({ ok: true, summary, result });
++  } catch (err) {
++    const errorMessage = err instanceof Error ? err.message : String(err);
++    console.error("[content-agent] run failed:", err);
++    await finishAgentRun(run.id, { status: "error", errorMessage });
++    return NextResponse.json({ ok: false, error: errorMessage }, { status: 500 });
++  }
++}
+diff --git a/src/lib/agents/content-agent.ts b/src/lib/agents/content-agent.ts
+new file mode 100644
+index 0000000..49ccefc
+--- /dev/null
++++ b/src/lib/agents/content-agent.ts
+@@ -0,0 +1,276 @@
++import Anthropic from "@anthropic-ai/sdk";
++import { z } from "zod";
++import { createAdminClient } from "@/lib/supabase/admin";
++import { getOrCreateContentAgentProfileId } from "@/lib/agents/system-profile";
++import { EVENT_CATEGORIES, VENDOR_CATEGORIES } from "@/lib/constants";
++
++const GCC_CITIES = [
++  "Riyadh, Saudi Arabia", "Jeddah, Saudi Arabia", "Dammam, Saudi Arabia",
++  "Dubai, UAE", "Abu Dhabi, UAE",
++  "Manama, Bahrain", "Kuwait City, Kuwait", "Doha, Qatar",
++];
++
++const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
++
++// ─── Output schemas ────────────────────────────────────────────
++// Every field the model is asked for is validated here before anything
++// touches the database. An item that fails validation is skipped (and
++// counted), never partially inserted — see runContentAgent().
++
++const EventDraftSchema = z.object({
++  title_en: z.string().min(3),
++  title_ar: z.string().min(2),
++  description_en: z.string().min(10),
++  description_ar: z.string().min(5),
++  venue_name: z.string().nullable().optional(),
++  venue_city: z.string().min(2),
++  venue_country: z.string().length(2).default("SA"),
++  starts_at: z.string().datetime({ offset: true }).or(z.string().min(10)),
++  ends_at: z.string().datetime({ offset: true }).or(z.string().min(10)).nullable().optional(),
++  category: z.enum(EVENT_CATEGORIES),
++  is_free: z.boolean().default(false),
++  source_url: z.string().url(),
++});
++
++const VendorDraftSchema = z.object({
++  name_en: z.string().min(2),
++  name_ar: z.string().min(2),
++  description_en: z.string().min(10),
++  description_ar: z.string().min(5),
++  category: z.enum(VENDOR_CATEGORIES),
++  city: z.string().min(2),
++  country: z.string().length(2).default("SA"),
++  website_url: z.string().url().nullable().optional(),
++  instagram_url: z.string().url().nullable().optional(),
++  whatsapp: z.string().nullable().optional(),
++  source_url: z.string().url(),
++});
++
++type EventDraft = z.infer<typeof EventDraftSchema>;
++type VendorDraft = z.infer<typeof VendorDraftSchema>;
++
++function getClient() {
++  const apiKey = process.env.ANTHROPIC_API_KEY;
++  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set.");
++  return new Anthropic({ apiKey });
++}
++
++/**
++ * Runs a web-search-grounded research prompt and extracts a JSON array
++ * from the model's final answer. Returns the raw parsed array (not yet
++ * schema-validated) plus the number of searches actually used, for
++ * logging. Throws only on a hard API failure or completely unparseable
++ * output — a partially-bad array is handled by the caller's per-item
++ * validation, not here.
++ */
++async function researchAndExtractJson(prompt: string, maxSearches: number): Promise<unknown[]> {
++  const client = getClient();
++
++  const response = await client.messages.create({
++    model: MODEL,
++    max_tokens: 4096,
++    tools: [
++      {
++        type: "web_search_20250305",
++        name: "web_search",
++        max_uses: maxSearches,
++      },
++    ],
++    messages: [{ role: "user", content: prompt }],
++  });
++
++  const text = response.content
++    .filter((block): block is Anthropic.TextBlock => block.type === "text")
++    .map((block) => block.text)
++    .join("\n");
++
++  const fenced = text.match(/```json\s*([\s\S]*?)```/i);
++  const candidate = fenced ? fenced[1] : text.slice(text.indexOf("["), text.lastIndexOf("]") + 1);
++
++  if (!candidate || candidate.trim().length === 0) {
++    throw new Error(`No JSON array found in model output. Raw text: ${text.slice(0, 500)}`);
++  }
++
++  const parsed = JSON.parse(candidate);
++  if (!Array.isArray(parsed)) {
++    throw new Error("Parsed JSON was not an array.");
++  }
++  return parsed;
++}
++
++function eventDiscoveryPrompt(count: number): string {
++  return `You are researching REAL, currently-scheduled public events happening in the next 60 days in these GCC cities: ${GCC_CITIES.join(", ")}.
++
++Use web search to find up to ${count} real events — conferences, weddings expos, exhibitions, sporting events, concerts/entertainment, family events, community events, or corporate events. Only include events you find real evidence for via search results. Do not invent an event, its date, its venue, or its price under any circumstances — if you can't verify something with a search result, leave it out entirely rather than guessing.
++
++For each event you can verify, extract:
++- title_en, title_ar (translate to Arabic if only English is available; keep it natural, not literal)
++- description_en, description_ar (1-2 honest sentences, no marketing hyperbole)
++- venue_name (or null if not stated), venue_city, venue_country (2-letter code, e.g. SA, AE, BH, KW, QA)
++- starts_at (ISO 8601 — your best-evidenced date/time; if only a date is known, use a reasonable time like 19:00 local and say so in the description)
++- ends_at (ISO 8601, or null)
++- category — MUST be exactly one of: ${EVENT_CATEGORIES.join(", ")}
++- is_free (boolean)
++- source_url — the exact URL where you found this event
++
++Respond with a short summary of your research, then end your response with ONLY a fenced \`\`\`json code block containing a JSON array of objects with exactly these fields. If you find zero verifiable events, output an empty array \`[]\`.`;
++}
++
++function vendorDiscoveryPrompt(count: number): string {
++  return `You are researching REAL event-services businesses (vendors) currently operating in these GCC cities: ${GCC_CITIES.join(", ")}.
++
++Use web search to find up to ${count} real, currently-operating businesses in categories like: ${VENDOR_CATEGORIES.join(", ")}. Only include businesses you find real evidence for via search results (their own website, Instagram, Google Business listing, or a directory listing them). Do not invent a business or its contact details.
++
++For each business you can verify, extract:
++- name_en, name_ar (translate if only one language is available)
++- description_en, description_ar (1-2 honest sentences describing what they offer, based only on what you found)
++- category — MUST be exactly one of: ${VENDOR_CATEGORIES.join(", ")}
++- city, country (2-letter code, e.g. SA, AE, BH, KW, QA)
++- website_url, instagram_url, whatsapp (each nullable — only include if you actually found it)
++- source_url — the exact URL where you found this business
++
++Respond with a short summary of your research, then end your response with ONLY a fenced \`\`\`json code block containing a JSON array of objects with exactly these fields. If you find zero verifiable businesses, output an empty array \`[]\`.`;
++}
++
++async function insertEventDrafts(drafts: EventDraft[], organizerId: string) {
++  const supabase = createAdminClient();
++  let created = 0;
++  let skipped = 0;
++
++  for (const draft of drafts) {
++    // Dedup: same title + same city already present (agent- or human-authored).
++    const { data: dupes } = await supabase
++      .from("events")
++      .select("id")
++      .eq("title_en", draft.title_en)
++      .eq("venue_city", draft.venue_city)
++      .limit(1);
++
++    if (dupes && dupes.length > 0) {
++      skipped++;
++      continue;
++    }
++
++    const { error } = await supabase.from("events").insert({
++      organizer_id: organizerId,
++      title_en: draft.title_en,
++      title_ar: draft.title_ar,
++      description_en: draft.description_en,
++      description_ar: draft.description_ar,
++      venue_name: draft.venue_name ?? null,
++      venue_city: draft.venue_city,
++      venue_country: draft.venue_country,
++      starts_at: draft.starts_at,
++      ends_at: draft.ends_at ?? draft.starts_at,
++      status: "draft", // NEVER 'published' — see CHANGES.md for why this is a hard rule, not a default
++      is_free: draft.is_free,
++      category: draft.category,
++      source_url: draft.source_url,
++      agent_generated: true,
++    });
++
++    if (error) {
++      console.error("[content-agent] failed to insert event draft:", draft.title_en, error);
++      skipped++;
++    } else {
++      created++;
++    }
++  }
++
++  return { created, skipped };
++}
++
++async function insertVendorDrafts(drafts: VendorDraft[], ownerId: string) {
++  const supabase = createAdminClient();
++  let created = 0;
++  let skipped = 0;
++
++  for (const draft of drafts) {
++    const { data: dupes } = await supabase
++      .from("vendors")
++      .select("id")
++      .eq("name_en", draft.name_en)
++      .eq("city", draft.city)
++      .limit(1);
++
++    if (dupes && dupes.length > 0) {
++      skipped++;
++      continue;
++    }
++
++    const { error } = await supabase.from("vendors").insert({
++      owner_id: ownerId,
++      name_en: draft.name_en,
++      name_ar: draft.name_ar,
++      description_en: draft.description_en,
++      description_ar: draft.description_ar,
++      category: draft.category,
++      city: draft.city,
++      country: draft.country,
++      website_url: draft.website_url ?? null,
++      instagram_url: draft.instagram_url ?? null,
++      whatsapp: draft.whatsapp ?? null,
++      is_verified: false, // agent-sourced — never auto-verified, see CHANGES.md
++      source_url: draft.source_url,
++      agent_generated: true,
++    });
++
++    if (error) {
++      console.error("[content-agent] failed to insert vendor draft:", draft.name_en, error);
++      skipped++;
++    } else {
++      created++;
++    }
++  }
++
++  return { created, skipped };
++}
++
++export interface ContentAgentResult {
++  eventsCreated: number;
++  eventsSkipped: number;
++  vendorsCreated: number;
++  vendorsSkipped: number;
++  eventsFoundInvalid: number;
++  vendorsFoundInvalid: number;
++}
++
++export async function runContentAgent(opts?: { eventCount?: number; vendorCount?: number }): Promise<ContentAgentResult> {
++  const eventCount = opts?.eventCount ?? 5;
++  const vendorCount = opts?.vendorCount ?? 5;
++
++  const systemProfileId = await getOrCreateContentAgentProfileId();
++
++  const [rawEvents, rawVendors] = await Promise.all([
++    researchAndExtractJson(eventDiscoveryPrompt(eventCount), 8),
++    researchAndExtractJson(vendorDiscoveryPrompt(vendorCount), 8),
++  ]);
++
++  const validEvents: EventDraft[] = [];
++  let eventsFoundInvalid = 0;
++  for (const item of rawEvents) {
++    const parsed = EventDraftSchema.safeParse(item);
++    if (parsed.success) validEvents.push(parsed.data);
++    else eventsFoundInvalid++;
++  }
++
++  const validVendors: VendorDraft[] = [];
++  let vendorsFoundInvalid = 0;
++  for (const item of rawVendors) {
++    const parsed = VendorDraftSchema.safeParse(item);
++    if (parsed.success) validVendors.push(parsed.data);
++    else vendorsFoundInvalid++;
++  }
++
++  const eventResult = await insertEventDrafts(validEvents, systemProfileId);
++  const vendorResult = await insertVendorDrafts(validVendors, systemProfileId);
++
++  return {
++    eventsCreated: eventResult.created,
++    eventsSkipped: eventResult.skipped,
++    vendorsCreated: vendorResult.created,
++    vendorsSkipped: vendorResult.skipped,
++    eventsFoundInvalid,
++    vendorsFoundInvalid,
++  };
++}
+diff --git a/src/lib/agents/run-log.ts b/src/lib/agents/run-log.ts
+new file mode 100644
+index 0000000..8c549e8
+--- /dev/null
++++ b/src/lib/agents/run-log.ts
+@@ -0,0 +1,68 @@
++import { createAdminClient } from "@/lib/supabase/admin";
++
++/**
++ * Every background agent writes one row to `agent_runs` per invocation,
++ * from "started" through "finished" — this is the only place agent
++ * behavior is observable. Without it, a cron job that's silently failing
++ * (bad API key, exhausted search quota, a schema mismatch) looks
++ * identical to one that's succeeding and just finding nothing to do.
++ *
++ * Usage:
++ *   const run = await startAgentRun("content-agent", { note: "daily events+vendors sweep" });
++ *   try {
++ *     // ... do work, track counts ...
++ *     await finishAgentRun(run.id, { status: "success", itemsCreated, itemsSkipped, summary });
++ *   } catch (err) {
++ *     await finishAgentRun(run.id, { status: "error", errorMessage: String(err) });
++ *     throw err;
++ *   }
++ */
++
++export async function startAgentRun(agentName: string, metadata?: Record<string, unknown>) {
++  const supabase = createAdminClient();
++  const { data, error } = await supabase
++    .from("agent_runs")
++    .insert({ agent_name: agentName, status: "running", metadata: metadata ?? null })
++    .select("id")
++    .single();
++
++  if (error || !data) {
++    // Logging failure shouldn't take down the agent itself — fall back to
++    // a console line so there's at least something in Vercel's function logs.
++    console.error(`[agent-run-log] failed to start run for ${agentName}:`, error);
++    return { id: null as string | null };
++  }
++  return { id: data.id as string };
++}
++
++export async function finishAgentRun(
++  runId: string | null,
++  result: {
++    status: "success" | "error";
++    itemsCreated?: number;
++    itemsSkipped?: number;
++    summary?: string;
++    errorMessage?: string;
++  }
++) {
++  if (!runId) {
++    console.error("[agent-run-log] finishAgentRun called with no runId — result was:", result);
++    return;
++  }
++  const supabase = createAdminClient();
++  const { error } = await supabase
++    .from("agent_runs")
++    .update({
++      status: result.status,
++      finished_at: new Date().toISOString(),
++      items_created: result.itemsCreated ?? 0,
++      items_skipped: result.itemsSkipped ?? 0,
++      summary: result.summary ?? null,
++      error_message: result.errorMessage ?? null,
++    })
++    .eq("id", runId);
++
++  if (error) {
++    console.error(`[agent-run-log] failed to finish run ${runId}:`, error);
++  }
++}
+diff --git a/src/lib/agents/system-profile.ts b/src/lib/agents/system-profile.ts
+new file mode 100644
+index 0000000..b4a048a
+--- /dev/null
++++ b/src/lib/agents/system-profile.ts
+@@ -0,0 +1,65 @@
++import { createAdminClient } from "@/lib/supabase/admin";
++
++const CONTENT_AGENT_FULL_NAME = "Sanatix Content Agent";
++const CONTENT_AGENT_EMAIL = "content-agent@sanatix.net";
++
++/**
++ * `events.organizer_id` and `vendors.owner_id` are NOT NULL foreign keys
++ * into `profiles`, which is itself a 1:1 extension of Supabase's
++ * `auth.users` table (see 04-Database.md) — there's no way to insert an
++ * event or vendor without a real, existing profile to attribute it to.
++ *
++ * Rather than picking a random real user (wrong, and creepy) or altering
++ * the schema to make these columns nullable (invasive, touches every
++ * query that joins/displays organizer info), this creates one real,
++ * clearly-labeled system account — "Sanatix Content Agent" — the first
++ * time the content agent runs, and reuses it on every subsequent run.
++ * Every agent-authored event/vendor is attributed to this account, which
++ * combined with `agent_generated = true` (see migration 003) makes
++ * agent content fully distinguishable from real organizer/vendor
++ * submissions everywhere it's displayed or queried.
++ */
++export async function getOrCreateContentAgentProfileId(): Promise<string> {
++  const supabase = createAdminClient();
++
++  const { data: existing, error: lookupError } = await supabase
++    .from("profiles")
++    .select("id")
++    .eq("full_name", CONTENT_AGENT_FULL_NAME)
++    .maybeSingle();
++
++  if (lookupError) {
++    throw new Error(`Failed to look up content agent profile: ${lookupError.message}`);
++  }
++  if (existing) {
++    return existing.id as string;
++  }
++
++  const { data: created, error: createError } = await supabase.auth.admin.createUser({
++    email: CONTENT_AGENT_EMAIL,
++    email_confirm: true,
++    password: crypto.randomUUID(), // never used to sign in — this account has no login flow
++    user_metadata: { full_name: CONTENT_AGENT_FULL_NAME },
++  });
++
++  if (createError || !created?.user) {
++    throw new Error(`Failed to create content agent system account: ${createError?.message}`);
++  }
++
++  // `handle_new_user()` (schema.sql) auto-inserts a profiles row with
++  // full_name/avatar_url on auth.users insert, defaulting role to
++  // 'customer' — bump it to 'organizer' so this account behaves
++  // consistently anywhere the app branches on role.
++  const { error: updateError } = await supabase
++    .from("profiles")
++    .update({ role: "organizer", country: "SA" })
++    .eq("id", created.user.id);
++
++  if (updateError) {
++    // Non-fatal — the account still works as an organizer_id/owner_id
++    // target even if the role field itself didn't get set.
++    console.error("[system-profile] created content agent account but failed to set role:", updateError);
++  }
++
++  return created.user.id;
++}
+diff --git a/src/lib/supabase/admin.ts b/src/lib/supabase/admin.ts
+new file mode 100644
+index 0000000..d0d07bd
+--- /dev/null
++++ b/src/lib/supabase/admin.ts
+@@ -0,0 +1,31 @@
++import { createClient as createSupabaseClient } from "@supabase/supabase-js";
++
++/**
++ * Service-role Supabase client — bypasses Row Level Security entirely.
++ *
++ * This is the FIRST thing in the codebase to actually use
++ * SUPABASE_SERVICE_ROLE_KEY (see 01-Architecture-and-Setup.md — until
++ * background agents existed, nothing in the app used it and every route
++ * ran as the logged-in user, subject to RLS).
++ *
++ * Only ever call this from trusted server-side code that isn't acting on
++ * behalf of a specific request-bound user — background agents (cron
++ * routes), not user-facing API routes. A user-facing route that needs
++ * elevated privileges should almost always be re-examined instead of
++ * reached for this client, since it bypasses the RLS policies that are
++ * this app's actual authorization boundary (see 03-Backend-API.md).
++ */
++export function createAdminClient() {
++  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
++  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
++
++  if (!url || !serviceRoleKey) {
++    throw new Error(
++      "createAdminClient() requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to be set."
++    );
++  }
++
++  return createSupabaseClient(url, serviceRoleKey, {
++    auth: { autoRefreshToken: false, persistSession: false },
++  });
++}
+diff --git a/supabase/migrations/003_agent_infrastructure.sql b/supabase/migrations/003_agent_infrastructure.sql
+new file mode 100644
+index 0000000..42e717a
+--- /dev/null
++++ b/supabase/migrations/003_agent_infrastructure.sql
+@@ -0,0 +1,55 @@
++-- ============================================================
++-- SANATIX — Migration 003
++-- Infrastructure for autonomous background agents (content,
++-- site-health, and future agents). Run this against project
++-- fobrdnjicooekbrknojo after schema.sql and migration 002.
++--
++-- What this adds:
++--   1. agent_runs — an observability log every agent writes to on
++--      each run, so there's one place to see what an agent did,
++--      whether it succeeded, and how much it created. Nothing in
++--      this codebase reads agent behavior otherwise — without this,
++--      an "autonomous" agent is a black box.
++--   2. source_url / agent_generated on events and vendors — every
++--      row an agent creates is tagged with where it came from and
++--      that it *is* agent-created, so a human reviewing the draft
++--      queue (or a future admin UI) can tell agent content apart
++--      from organizer/vendor-submitted content and check the
++--      source before publishing. Both columns are nullable /
++--      default false, so this is fully additive and doesn't touch
++--      any existing row or query.
++-- ============================================================
++
++-- ─── 1. Agent run log ──────────────────────────────────────────
++create table if not exists agent_runs (
++  id             uuid primary key default uuid_generate_v4(),
++  agent_name     text not null,                 -- e.g. 'content-agent', 'health-agent'
++  status         text not null default 'running' check (status in ('running','success','error')),
++  started_at     timestamptz not null default now(),
++  finished_at    timestamptz,
++  items_created  integer not null default 0,
++  items_skipped  integer not null default 0,
++  summary        text,                           -- short human-readable summary of what happened
++  error_message  text,
++  metadata       jsonb                           -- free-form: search queries used, model, counts by type, etc.
++);
++
++create index if not exists idx_agent_runs_name_started on agent_runs(agent_name, started_at desc);
++
++alter table agent_runs enable row level security;
++
++-- No public read policy: agent_runs is written and read via the
++-- service-role key only (cron routes, and later an admin dashboard).
++-- Admins can read it once such a dashboard exists.
++create policy "agent_runs_read_admin" on agent_runs for select using (
++  exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin')
++);
++
++-- ─── 2. Provenance columns on agent-writable tables ────────────
++alter table events  add column if not exists source_url      text;
++alter table events  add column if not exists agent_generated boolean not null default false;
++alter table vendors add column if not exists source_url      text;
++alter table vendors add column if not exists agent_generated boolean not null default false;
++
++create index if not exists idx_events_agent_generated  on events(agent_generated)  where agent_generated = true;
++create index if not exists idx_vendors_agent_generated on vendors(agent_generated) where agent_generated = true;
+diff --git a/vercel.json b/vercel.json
+index ac1289a..8f80a3e 100644
+--- a/vercel.json
++++ b/vercel.json
+@@ -4,6 +4,9 @@
+   "devCommand": "next dev",
+   "installCommand": "npm install",
+   "regions": ["bom1"],
++  "crons": [
++    { "path": "/api/cron/content-agent", "schedule": "0 6 * * *" }
++  ],
+   "headers": [
+     {
+       "source": "/(.*)",
