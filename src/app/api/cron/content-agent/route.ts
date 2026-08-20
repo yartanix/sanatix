@@ -30,17 +30,27 @@ export async function GET(req: NextRequest) {
   try {
     const result = await runContentAgent();
 
+    // A non-empty researchErrors means one category's research call failed
+    // (e.g. truncated model output) but the run still completed and
+    // inserted whatever the other category found — this is recorded here
+    // so it's visible in agent_runs without turning the whole run into a
+    // hard "error" for what's really a partial result.
+    const researchErrorNote =
+      result.researchErrors.length > 0 ? ` Research issues: ${result.researchErrors.join(" | ")}` : "";
+
     const summary =
       `Created ${result.eventsCreated} draft event(s), ${result.eventsSkipped} skipped (duplicate/insert error), ` +
       `${result.eventsFoundInvalid} failed schema validation. ` +
       `Created ${result.vendorsCreated} vendor(s), ${result.vendorsSkipped} skipped, ` +
-      `${result.vendorsFoundInvalid} failed schema validation.`;
+      `${result.vendorsFoundInvalid} failed schema validation.` +
+      researchErrorNote;
 
     await finishAgentRun(run.id, {
       status: "success",
       itemsCreated: result.eventsCreated + result.vendorsCreated,
       itemsSkipped: result.eventsSkipped + result.vendorsSkipped,
       summary,
+      errorMessage: result.researchErrors.length > 0 ? result.researchErrors.join(" | ") : undefined,
     });
 
     return NextResponse.json({ ok: true, summary, result });
