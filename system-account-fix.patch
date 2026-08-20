@@ -1,0 +1,200 @@
+diff --git a/src/lib/agents/system-profile.ts b/src/lib/agents/system-profile.ts
+index b4a048a..97f7fb2 100644
+--- a/src/lib/agents/system-profile.ts
++++ b/src/lib/agents/system-profile.ts
+@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
+ 
+ const CONTENT_AGENT_FULL_NAME = "Sanatix Content Agent";
+ const CONTENT_AGENT_EMAIL = "content-agent@sanatix.net";
++const CONFIG_KEY = "content_agent_profile_id";
+ 
+ /**
+  * `events.organizer_id` and `vendors.owner_id` are NOT NULL foreign keys
+@@ -18,11 +19,45 @@ const CONTENT_AGENT_EMAIL = "content-agent@sanatix.net";
+  * combined with `agent_generated = true` (see migration 003) makes
+  * agent content fully distinguishable from real organizer/vendor
+  * submissions everywhere it's displayed or queried.
++ *
++ * Resolution order, each step only run if the previous one came up empty:
++ *   1. agent_config.content_agent_profile_id — the fast path, and the
++ *      only thing later runs should ever need (see migration 004; this
++ *      exists specifically because step 2 below proved unreliable in
++ *      practice — the first live run created the account but a
++ *      name-based search failed to find it again afterwards, since the
++ *      Postgres trigger that copies auth metadata into `profiles` isn't
++ *      committed to version control and its exact behavior wasn't
++ *      actually verified before shipping).
++ *   2. profiles.full_name match — covers an account created before this
++ *      config-table fix existed.
++ *   3. Scan auth.users for a matching email via the admin API — covers
++ *      an orphaned auth.users row with no discoverable profile match at
++ *      all (exactly what happened on the first run). Sanatix has a
++ *      small user base, so a full scan is cheap; if that ever stops
++ *      being true, switch to a server-side email filter instead.
++ *   4. Create a brand new account — only reached if none of the above
++ *      found anything.
++ * Whatever id is found or created gets written back to agent_config so
++ * every future run takes the step-1 fast path and never re-runs 2-4.
+  */
+ export async function getOrCreateContentAgentProfileId(): Promise<string> {
+   const supabase = createAdminClient();
+ 
+-  const { data: existing, error: lookupError } = await supabase
++  // 1. Fast path — the only step normal runs should need.
++  const { data: config } = await supabase
++    .from("agent_config")
++    .select("value")
++    .eq("key", CONFIG_KEY)
++    .maybeSingle();
++
++  if (config?.value) {
++    return config.value as string;
++  }
++
++  // 2. Fall back to a name-based search, in case the account was
++  // created before agent_config existed.
++  const { data: existingProfile, error: lookupError } = await supabase
+     .from("profiles")
+     .select("id")
+     .eq("full_name", CONTENT_AGENT_FULL_NAME)
+@@ -31,10 +66,15 @@ export async function getOrCreateContentAgentProfileId(): Promise<string> {
+   if (lookupError) {
+     throw new Error(`Failed to look up content agent profile: ${lookupError.message}`);
+   }
+-  if (existing) {
+-    return existing.id as string;
++  if (existingProfile) {
++    await saveConfig(supabase, existingProfile.id as string);
++    return existingProfile.id as string;
+   }
+ 
++  // 3. Try to create it. If Supabase says the email's already taken,
++  // that means an orphaned auth.users row exists with no profile our
++  // name-based search could find — scan for it directly instead of
++  // failing outright.
+   const { data: created, error: createError } = await supabase.auth.admin.createUser({
+     email: CONTENT_AGENT_EMAIL,
+     email_confirm: true,
+@@ -42,24 +82,73 @@ export async function getOrCreateContentAgentProfileId(): Promise<string> {
+     user_metadata: { full_name: CONTENT_AGENT_FULL_NAME },
+   });
+ 
++  let profileId: string;
++
+   if (createError || !created?.user) {
+-    throw new Error(`Failed to create content agent system account: ${createError?.message}`);
++    const alreadyExists = /already.*registered|already.*exists/i.test(createError?.message ?? "");
++    if (!alreadyExists) {
++      throw new Error(`Failed to create content agent system account: ${createError?.message}`);
++    }
++
++    const foundId = await findUserIdByEmail(supabase, CONTENT_AGENT_EMAIL);
++    if (!foundId) {
++      throw new Error(
++        `Content agent account creation failed because "${CONTENT_AGENT_EMAIL}" is already registered, ` +
++        `but scanning auth.users for that email found no match either. This needs a human to check the ` +
++        `Supabase Auth dashboard directly and, once the account's User UID is found, seed it with: ` +
++        `insert into agent_config (key, value) values ('${CONFIG_KEY}', '<uid>') on conflict (key) do update set value = excluded.value;`
++      );
++    }
++    profileId = foundId;
++  } else {
++    profileId = created.user.id;
+   }
+ 
+-  // `handle_new_user()` (schema.sql) auto-inserts a profiles row with
+-  // full_name/avatar_url on auth.users insert, defaulting role to
+-  // 'customer' — bump it to 'organizer' so this account behaves
+-  // consistently anywhere the app branches on role.
++  // `handle_new_user()` (schema.sql) is assumed to auto-insert a
++  // profiles row on auth.users insert, defaulting role to 'customer' —
++  // bump it to 'organizer' so this account behaves consistently
++  // anywhere the app branches on role. Non-fatal if this fails (e.g.
++  // the profiles row doesn't exist yet for some reason) — the account
++  // still works as an organizer_id/owner_id target either way.
+   const { error: updateError } = await supabase
+     .from("profiles")
+     .update({ role: "organizer", country: "SA" })
+-    .eq("id", created.user.id);
++    .eq("id", profileId);
+ 
+   if (updateError) {
+-    // Non-fatal — the account still works as an organizer_id/owner_id
+-    // target even if the role field itself didn't get set.
+-    console.error("[system-profile] created content agent account but failed to set role:", updateError);
++    console.error("[system-profile] resolved content agent account but failed to set role:", updateError);
+   }
+ 
+-  return created.user.id;
++  await saveConfig(supabase, profileId);
++  return profileId;
++}
++
++async function findUserIdByEmail(
++  supabase: ReturnType<typeof createAdminClient>,
++  email: string
++): Promise<string | null> {
++  // Sanatix has a very small user base at this stage (see 04-Database.md)
++  // so a full paginated scan is cheap. Revisit if that ever changes.
++  for (let page = 1; page <= 20; page++) {
++    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
++    if (error) {
++      console.error("[system-profile] listUsers failed during email scan:", error);
++      return null;
++    }
++    const match = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
++    if (match) return match.id;
++    if (data.users.length < 200) break; // last page
++  }
++  return null;
++}
++
++async function saveConfig(supabase: ReturnType<typeof createAdminClient>, profileId: string) {
++  const { error } = await supabase
++    .from("agent_config")
++    .upsert({ key: CONFIG_KEY, value: profileId, updated_at: new Date().toISOString() });
++  if (error) {
++    // Non-fatal — worst case, the next run repeats steps 2-3 instead of
++    // taking the fast path. Still correct, just slightly slower.
++    console.error("[system-profile] failed to cache content agent profile id:", error);
++  }
+ }
+diff --git a/supabase/migrations/004_agent_config.sql b/supabase/migrations/004_agent_config.sql
+new file mode 100644
+index 0000000..c987b19
+--- /dev/null
++++ b/supabase/migrations/004_agent_config.sql
+@@ -0,0 +1,33 @@
++-- ============================================================
++-- SANATIX — Migration 004
++-- Fixes a real bug hit on the first live content-agent run: the
++-- system account lookup in src/lib/agents/system-profile.ts searched
++-- for an existing "Sanatix Content Agent" profile by full_name, and
++-- only created a new auth.users account if that search came up
++-- empty. That search depends on the (uncommitted, unverified —
++-- see 04-Database.md) handle_new_user() trigger actually copying
++-- user_metadata.full_name into profiles.full_name. Something
++-- created an auth.users row for content-agent@sanatix.net without
++-- the name-based lookup being able to find it again afterwards,
++-- so every subsequent run hit Supabase's "email already
++-- registered" error and failed outright.
++--
++-- Fix: stop relying on a search at all. Store the resolved profile
++-- id directly the first time it's successfully created, and read
++-- it back directly on every later run — no lookup, no ambiguity,
++-- no dependency on trigger behavior we can't verify.
++-- ============================================================
++
++create table if not exists agent_config (
++  key        text primary key,
++  value      text not null,
++  updated_at timestamptz not null default now()
++);
++
++alter table agent_config enable row level security;
++
++-- Same access model as agent_runs: written/read via the service-role
++-- key from cron routes; admins can read it directly for visibility.
++create policy "agent_config_read_admin" on agent_config for select using (
++  exists (select 1 from profiles where profiles.id = auth.uid() and profiles.role = 'admin')
++);
