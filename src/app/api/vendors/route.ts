@@ -16,6 +16,16 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from("vendors")
     .select("*", { count: "exact" })
+    // Mirrors /api/events' hardcoded `status = 'published'` filter: this is
+    // the actual enforcement point of the "agents never publish" rule for
+    // vendors, which have no status column of their own. Without this,
+    // every agent-drafted row (is_verified defaults false, see
+    // src/lib/agents/content-agent.ts) was publicly visible the instant it
+    // was inserted — a real safety gap, not a stylistic choice. A vendor
+    // only appears here once a human has reviewed it and flipped
+    // is_verified to true (currently done directly in Supabase; no admin
+    // UI yet — see 07-Autonomous-Agents.md).
+    .eq("is_verified", true)
     .order("is_featured", { ascending: false })
     .order("rating", { ascending: false })
     .range(offset, offset + limit - 1);
