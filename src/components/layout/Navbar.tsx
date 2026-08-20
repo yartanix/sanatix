@@ -17,10 +17,6 @@ export default function Navbar() {
 
   const isRTL = locale === "ar";
 
-  // Navbar previously always showed "Login"/"Register" regardless of auth
-  // state, with no way to reach /dashboard and a `handleLogout` that was
-  // defined but never wired to anything. Track the session so signed-in
-  // users see Dashboard/Logout instead.
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -49,49 +45,57 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-brand-warm-white/90 backdrop-blur border-b border-black/5">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 bg-brand-midnight/80 backdrop-blur-xl border-b border-white/[0.08]">
+      <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
-            <circle cx="6"  cy="28" r="3"   fill="#C8973A" opacity="0.45"/>
-            <circle cx="16" cy="18" r="4.5" fill="#C8973A" opacity="0.72"/>
-            <circle cx="28" cy="6"  r="6"   fill="#C8973A"/>
-            <circle cx="28" cy="6"  r="10"  stroke="#C8973A" strokeWidth="0.75" opacity="0.22" strokeDasharray="2.5 2"/>
-            <line x1="9"  y1="26" x2="13" y2="21" stroke="#C8973A" strokeWidth="0.85" opacity="0.42"/>
-            <line x1="19" y1="15" x2="23" y2="10" stroke="#C8973A" strokeWidth="0.85" opacity="0.42"/>
+          <svg width="28" height="28" viewBox="0 0 34 34" fill="none">
+            <defs>
+              <filter id="navGlow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="1.4" result="b" />
+                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+            </defs>
+            <g filter="url(#navGlow)">
+              <circle cx="6"  cy="28" r="3"   fill="#C8973A" opacity="0.5"/>
+              <circle cx="16" cy="18" r="4.5" fill="#C8973A" opacity="0.78"/>
+              <circle cx="28" cy="6"  r="6"   fill="#C8973A"/>
+              <circle cx="28" cy="6"  r="10"  stroke="#C8973A" strokeWidth="0.75" opacity="0.3" strokeDasharray="2.5 2"/>
+              <line x1="9"  y1="26" x2="13" y2="21" stroke="#C8973A" strokeWidth="0.85" opacity="0.5"/>
+              <line x1="19" y1="15" x2="23" y2="10" stroke="#C8973A" strokeWidth="0.85" opacity="0.5"/>
+            </g>
           </svg>
-          <span className="text-lg font-medium tracking-tight text-brand-midnight">sanatix</span>
+          <span className="text-lg font-medium tracking-tight text-brand-warm-white">sanatix</span>
         </Link>
 
         {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-7 text-sm text-brand-ink/65">
+        <div className="hidden md:flex items-center gap-7 text-sm text-brand-warm-white/65">
           {navLinks.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-brand-midnight transition-colors">
+            <Link key={l.href} href={l.href} className="hover:text-brand-warm-white transition-colors">
               {l.label}
             </Link>
           ))}
         </div>
 
         {/* Actions */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-4">
           <button
             onClick={toggleLocale}
-            className="flex items-center gap-1.5 text-sm text-brand-ink/60 hover:text-brand-midnight transition-colors"
+            className="flex items-center gap-1.5 text-xs font-medium text-brand-warm-white/70 hover:text-brand-warm-white transition-colors border border-white/15 rounded-full px-3 py-1.5"
           >
-            <Globe size={15} />
+            <Globe size={13} />
             {isRTL ? "EN" : "ع"}
           </button>
           {user ? (
             <>
-              <Link href="/dashboard" className="flex items-center gap-1.5 text-sm text-brand-ink/70 hover:text-brand-midnight transition-colors">
+              <Link href="/dashboard" className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white transition-colors">
                 <LayoutDashboard size={15} />
                 {isRTL ? "لوحتي" : "Dashboard"}
               </Link>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 text-sm text-brand-ink/70 hover:text-brand-midnight transition-colors"
+                className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white transition-colors"
               >
                 <LogOut size={15} />
                 {t("common.logout")}
@@ -99,12 +103,12 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/login" className="text-sm text-brand-ink/70 hover:text-brand-midnight transition-colors">
+              <Link href="/login" className="text-sm text-brand-warm-white/75 hover:text-brand-warm-white transition-colors">
                 {t("common.login")}
               </Link>
               <Link
                 href="/register"
-                className="text-sm bg-brand-gold text-white px-4 py-2 rounded-full hover:bg-brand-gold/90 transition-colors font-medium"
+                className="text-sm font-semibold text-brand-midnight px-4 py-2 rounded-full bg-gradient-to-br from-brand-gold-light to-brand-gold hover:opacity-90 transition-opacity shadow-[0_8px_24px_-8px_rgba(200,151,58,0.55)]"
               >
                 {t("common.register")}
               </Link>
@@ -114,7 +118,7 @@ export default function Navbar() {
 
         {/* Mobile menu toggle */}
         <button
-          className="md:hidden text-brand-ink"
+          className="md:hidden text-brand-warm-white"
           onClick={() => setMenuOpen(!menuOpen)}
         >
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -123,34 +127,34 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-brand-warm-white border-t border-black/5 px-6 py-4 space-y-4">
+        <div className="md:hidden bg-brand-midnight border-t border-white/[0.08] px-6 py-4 space-y-4">
           {navLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="block text-sm text-brand-ink/70 hover:text-brand-midnight"
+              className="block text-sm text-brand-warm-white/75 hover:text-brand-warm-white"
               onClick={() => setMenuOpen(false)}
             >
               {l.label}
             </Link>
           ))}
-          <div className="pt-2 flex items-center gap-3 border-t border-black/5">
+          <div className="pt-2 flex items-center gap-3 border-t border-white/[0.08]">
             {user ? (
               <>
-                <Link href="/dashboard" className="text-sm text-brand-ink/70" onClick={() => setMenuOpen(false)}>
+                <Link href="/dashboard" className="text-sm text-brand-warm-white/75" onClick={() => setMenuOpen(false)}>
                   {isRTL ? "لوحتي" : "Dashboard"}
                 </Link>
                 <button
                   onClick={() => { setMenuOpen(false); handleLogout(); }}
-                  className="text-sm bg-brand-gold text-white px-4 py-2 rounded-full font-medium"
+                  className="text-sm font-semibold text-brand-midnight px-4 py-2 rounded-full bg-gradient-to-br from-brand-gold-light to-brand-gold"
                 >
                   {t("common.logout")}
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" className="text-sm text-brand-ink/70" onClick={() => setMenuOpen(false)}>{t("common.login")}</Link>
-                <Link href="/register" className="text-sm bg-brand-gold text-white px-4 py-2 rounded-full font-medium" onClick={() => setMenuOpen(false)}>
+                <Link href="/login" className="text-sm text-brand-warm-white/75" onClick={() => setMenuOpen(false)}>{t("common.login")}</Link>
+                <Link href="/register" className="text-sm font-semibold text-brand-midnight px-4 py-2 rounded-full bg-gradient-to-br from-brand-gold-light to-brand-gold" onClick={() => setMenuOpen(false)}>
                   {t("common.register")}
                 </Link>
               </>
