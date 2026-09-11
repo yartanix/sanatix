@@ -24,7 +24,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   let query = supabase
     .from("events")
-    .select("id, title_ar, title_en, cover_image, starts_at, venue_city, category, is_featured, ticket_types(price, currency)", { count: "exact" })
+    .select("id, title_ar, title_en, cover_image, starts_at, venue_city, category, is_featured, is_free, ticket_url, ticket_types(price, currency)", { count: "exact" })
     .eq("status", "published")
     .order("starts_at", { ascending: true })
     .range(offset, offset + PAGE_SIZE - 1);
@@ -184,7 +184,11 @@ export default async function EventsPage({ searchParams }: PageProps) {
                       </div>
                     )}
                     <p className="text-sm font-medium text-brand-gold">
-                      {minPrice === 0 ? t("events.free") : formatCurrency(minPrice, currency, isRTL ? "ar-SA" : "en-US")}
+                      {event.is_free
+                        ? t("events.free")
+                        : prices.length === 0
+                          ? (event.ticket_url ? t("venues.getTickets") : "")
+                          : formatCurrency(minPrice, currency, isRTL ? "ar-SA" : "en-US")}
                     </p>
                   </div>
                 </Link>

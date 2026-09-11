@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Calendar, MapPin, Share2, Heart } from "lucide-react";
+import { Calendar, MapPin, Share2, Heart, ExternalLink } from "lucide-react";
+import { Link } from "@/i18n/routing";
 import Navbar from "@/components/layout/Navbar";
 import TicketSelector from "@/components/events/TicketSelector";
 import { formatDate, formatDateTime } from "@/lib/utils";
@@ -18,7 +19,7 @@ export default async function EventPage({ params }: EventPageProps) {
 
   const { data: event } = await supabase
     .from("events")
-    .select(`*, profiles(full_name), ticket_types(*)`)
+    .select(`*, profiles(full_name), ticket_types(*), venues(id, name_ar, name_en, address)`)
     .eq("id", id)
     .eq("status", "published")
     .single();
@@ -104,8 +105,16 @@ export default async function EventPage({ params }: EventPageProps) {
                   <MapPin size={16} className="text-brand-gold" />
                 </div>
                 <div>
-                  <p className="font-medium text-brand-midnight">{event.venue_name || t("events.title")}</p>
-                  <p className="text-xs text-brand-ink/50">{event.venue_city}</p>
+                  {event.venues ? (
+                    <Link href={`/venues/${event.venues.id}`} className="font-medium text-brand-midnight hover:text-brand-gold transition-colors">
+                      {isRTL ? event.venues.name_ar : event.venues.name_en}
+                    </Link>
+                  ) : (
+                    <p className="font-medium text-brand-midnight">{event.venue_name || t("events.title")}</p>
+                  )}
+                  <p className="text-xs text-brand-ink/50">
+                    {event.venues?.address ? `${event.venues.address}, ` : ""}{event.venue_city}
+                  </p>
                 </div>
               </div>
             </div>
@@ -149,12 +158,36 @@ export default async function EventPage({ params }: EventPageProps) {
           {/* Right — Ticket selector (sticky) */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
+              {event.ticket_url && (!event.ticket_types || event.ticket_types.length === 0) ? (
+                <div className="bg-white rounded-2xl border border-black/5 p-5 space-y-3">
+                  <p className="text-sm text-brand-ink/60">
+                    {isRTL ? "التذاكر متاحة عبر موقع المنظم" : "Tickets are sold on the organizer's site"}
+                  </p>
+                  <a
+                    href={event.ticket_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-brand-midnight text-white text-sm font-medium hover:bg-brand-midnight/90 transition-colors"
+                  >
+                    {t("venues.getTickets")} <ExternalLink size={14} />
+                  </a>
+                  {event.source_url && (
+                    <p className="text-[11px] text-brand-ink/40">
+                      {t("venues.source")}:{" "}
+                      <a href={event.source_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-gold">
+                        {new URL(event.source_url).hostname}
+                      </a>
+                    </p>
+                  )}
+                </div>
+              ) : (
               <TicketSelector
                 eventId={event.id}
                 ticketTypes={event.ticket_types ?? []}
                 isFree={event.is_free ?? false}
                 locale={locale}
               />
+              )}
             </div>
           </div>
 

@@ -39,6 +39,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: "/events",       label: t("nav.events") },
+    { href: "/venues",       label: t("nav.venues") },
     { href: "/vendors",      label: t("nav.vendors") },
     { href: "/organizers",   label: t("nav.organizers") },
     { href: "/crowdfunding", label: t("nav.crowdfunding") },

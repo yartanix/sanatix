@@ -16,7 +16,7 @@ export default async function HomePage() {
 
   const { data: featuredEvents } = await supabase
     .from("events")
-    .select("id, title_ar, title_en, venue_city, cover_image, starts_at, is_free, is_featured, ticket_types(price, currency)")
+    .select("id, title_ar, title_en, venue_city, cover_image, starts_at, is_free, is_featured, ticket_url, ticket_types(price, currency)")
     .eq("status", "published")
     .order("is_featured", { ascending: false })
     .order("view_count", { ascending: false })
@@ -150,7 +150,11 @@ export default async function HomePage() {
                         </span>
                       )}
                       <span className="absolute top-3.5 end-3.5 text-xs font-bold text-brand-warm-white bg-brand-midnight/70 backdrop-blur rounded-full px-3 py-1.5">
-                        {event.is_free || minPrice === 0 ? t("events.free") : formatCurrency(minPrice, currency, isRTL ? "ar-SA" : "en-US")}
+                        {event.is_free
+                          ? t("events.free")
+                          : prices.length === 0
+                            ? (event.ticket_url ? t("venues.getTickets") : "")
+                            : formatCurrency(minPrice, currency, isRTL ? "ar-SA" : "en-US")}
                       </span>
                     </div>
                     <div className="p-5 space-y-2.5">

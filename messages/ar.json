@@ -18,6 +18,7 @@
   "nav": {
     "events": "الفعاليات",
     "vendors": "الموردون",
+    "venues": "الأماكن",
     "organizers": "المنظمون",
     "crowdfunding": "التمويل الجماعي",
     "dashboard": "لوحة التحكم"
@@ -46,6 +47,33 @@
     "verified": "موثق",
     "contactVendor": "تواصل مع المورد",
     "viewProfile": "عرض الملف"
+  },
+  "venues": {
+    "title": "الأماكن",
+    "subtitle": "قاعات وفنادق وصالات ومساحات فعاليات في الخليج",
+    "searchPlaceholder": "ابحث عن مكان بالاسم...",
+    "allTypes": "كل الأنواع",
+    "allCities": "كل المدن",
+    "empty": "لا توجد أماكن بعد",
+    "emptyHint": "ستظهر الأماكن هنا عند إضافتها",
+    "capacity": "السعة",
+    "upTo": "حتى",
+    "guests": "شخص",
+    "about": "عن المكان",
+    "amenities": "المرافق",
+    "contact": "التواصل",
+    "website": "الموقع الإلكتروني",
+    "instagram": "إنستغرام",
+    "call": "اتصال",
+    "whatsapp": "واتساب",
+    "directions": "الاتجاهات",
+    "upcomingEvents": "الفعاليات القادمة هنا",
+    "noUpcoming": "لا توجد فعاليات قادمة في هذا المكان بعد",
+    "priceRange": "نطاق الأسعار",
+    "viewVenue": "عرض المكان",
+    "source": "المصدر",
+    "getTickets": "احصل على التذاكر",
+    "backToVenues": "كل الأماكن"
   },
   "auth": {
     "email": "البريد الإلكتروني",
