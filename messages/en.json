@@ -18,6 +18,7 @@
   "nav": {
     "events": "Events",
     "vendors": "Vendors",
+    "venues": "Venues",
     "organizers": "Organizers",
     "crowdfunding": "Crowdfunding",
     "dashboard": "Dashboard"
@@ -46,6 +47,33 @@
     "verified": "Verified",
     "contactVendor": "Contact Vendor",
     "viewProfile": "View Profile"
+  },
+  "venues": {
+    "title": "Venues",
+    "subtitle": "Halls, hotels, arenas and event spaces across the GCC",
+    "searchPlaceholder": "Search venues by name...",
+    "allTypes": "All Types",
+    "allCities": "All Cities",
+    "empty": "No venues yet",
+    "emptyHint": "Venues will appear here as they are added",
+    "capacity": "Capacity",
+    "upTo": "up to",
+    "guests": "guests",
+    "about": "About this venue",
+    "amenities": "Amenities",
+    "contact": "Contact",
+    "website": "Website",
+    "instagram": "Instagram",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "directions": "Directions",
+    "upcomingEvents": "Upcoming events here",
+    "noUpcoming": "No upcoming events listed at this venue yet",
+    "priceRange": "Price range",
+    "viewVenue": "View venue",
+    "source": "Source",
+    "getTickets": "Get tickets",
+    "backToVenues": "All venues"
   },
   "auth": {
     "email": "Email",

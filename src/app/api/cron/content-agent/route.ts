@@ -1,18 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runContentAgent } from "@/lib/agents/content-agent";
+import { runContentAgent, summarizeRun, type SweepScope } from "@/lib/agents/content-agent";
 import { startAgentRun, finishAgentRun } from "@/lib/agents/run-log";
 
-export const maxDuration = 300; // seconds — web search + two Claude calls can take a while
+export const maxDuration = 300; // seconds — several web-search-grounded Claude calls per run
+export const dynamic = "force-dynamic";
+
+// Day of week (UTC, 0 = Sunday) on which the daily cron also sweeps the
+// non-Saudi GCC cities. Thursday: catches weekend announcements before
+// the Fri/Sat weekend across the Gulf.
+const GCC_WEEKDAY = 4;
 
 /**
- * Triggered by Vercel Cron (see vercel.json) on a daily schedule, and
- * callable manually (e.g. from the Vercel dashboard, or curl) for testing.
+ * Content agent v2 entry point.
  *
- * Auth: Vercel automatically sends `Authorization: Bearer $CRON_SECRET`
- * on cron-triggered requests once CRON_SECRET is set as an environment
- * variable — this checks that header so the route can't be triggered by
- * anyone who finds the URL. Manual/local testing needs the same header
- * set explicitly (see CHANGES.md).
+ * Triggered by Vercel Cron daily (see vercel.json). Scope:
+ *   - every day:      KSA cities (events) + 1 rotating KSA city (venues)
+ *   - GCC_WEEKDAY:    additionally the 5 GCC cities (events) + 1 rotating
+ *                     GCC city (venues)
+ *
+ * Manual overrides (all optional, for testing from curl / the Vercel UI):
+ *   ?scope=ksa|gcc         force the scope regardless of weekday
+ *   ?city=Riyadh,Jeddah    restrict to specific cities (venues + events)
+ *   ?events=5&venues=5     per-city counts
+ *   ?venues=0              skip the venue pass;   ?vendors=0 skips vendors
+ *
+ * Auth: Vercel sends `Authorization: Bearer $CRON_SECRET` on cron
+ * requests once CRON_SECRET is set; manual calls need the same header.
  */
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -25,35 +38,60 @@ export async function GET(req: NextRequest) {
     console.warn("[content-agent] CRON_SECRET is not set — route is unauthenticated. Set it before going live.");
   }
 
-  const run = await startAgentRun("content-agent", { trigger: "cron" });
+  const startedAt = Date.now();
+  const params = req.nextUrl.searchParams;
+
+  const forcedScope = params.get("scope");
+  const scope: SweepScope =
+    forcedScope === "gcc" || forcedScope === "ksa"
+      ? forcedScope
+      : new Date().getUTCDay() === GCC_WEEKDAY ? "gcc" : "ksa";
+
+  const cities = params.get("city")?.split(",").map((s) => s.trim()).filter(Boolean);
+  const num = (key: string) => {
+    const v = params.get(key);
+    if (v === null) return undefined;
+    const n = Number.parseInt(v, 10);
+    return Number.isNaN(n) ? undefined : n;
+  };
+  const eventsPerCity = num("events");
+  const venuesPerCity = num("venues");
+  const vendorCount = num("vendors");
+
+  const run = await startAgentRun("content-agent", {
+    version: 2, trigger: cronSecret && req.headers.get("authorization") ? "cron" : "manual",
+    scope, cities: cities ?? null,
+  });
 
   try {
-    const result = await runContentAgent();
+    const result = await runContentAgent({
+      scope,
+      cities,
+      eventsPerCity,
+      venuesPerCity: venuesPerCity === 0 ? undefined : venuesPerCity,
+      skipVenues: venuesPerCity === 0,
+      vendorCount: vendorCount === 0 ? undefined : vendorCount,
+      skipVendors: vendorCount === 0,
+      // Leave ~60s of the 300s function budget for in-flight jobs + logging.
+      deadlineMs: startedAt + 220_000,
+    });
 
-    // A non-empty researchErrors means one category's research call failed
-    // (e.g. truncated model output) but the run still completed and
-    // inserted whatever the other category found — this is recorded here
-    // so it's visible in agent_runs without turning the whole run into a
-    // hard "error" for what's really a partial result.
-    const researchErrorNote =
-      result.researchErrors.length > 0 ? ` Research issues: ${result.researchErrors.join(" | ")}` : "";
-
-    const summary =
-      `Created ${result.eventsCreated} draft event(s), ${result.eventsSkipped} skipped (duplicate/insert error), ` +
-      `${result.eventsFoundInvalid} failed schema validation. ` +
-      `Created ${result.vendorsCreated} vendor(s), ${result.vendorsSkipped} skipped, ` +
-      `${result.vendorsFoundInvalid} failed schema validation.` +
-      researchErrorNote;
+    const summary = summarizeRun(result);
+    const itemsCreated = result.totals.eventsPublished + result.totals.venuesPublished + result.totals.vendorsCreated;
+    const itemsSkipped =
+      result.events.reduce((n, s) => n + s.duplicates + s.invalid + s.rejected, 0) +
+      result.venues.reduce((n, s) => n + s.duplicates + s.invalid, 0) +
+      (result.vendors ? result.vendors.skipped + result.vendors.invalid : 0);
 
     await finishAgentRun(run.id, {
       status: "success",
-      itemsCreated: result.eventsCreated + result.vendorsCreated,
-      itemsSkipped: result.eventsSkipped + result.vendorsSkipped,
+      itemsCreated,
+      itemsSkipped,
       summary,
-      errorMessage: result.researchErrors.length > 0 ? result.researchErrors.join(" | ") : undefined,
+      errorMessage: result.errors.length > 0 ? result.errors.join(" | ") : undefined,
     });
 
-    return NextResponse.json({ ok: true, summary, result });
+    return NextResponse.json({ ok: true, durationMs: Date.now() - startedAt, summary, result });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error("[content-agent] run failed:", err);

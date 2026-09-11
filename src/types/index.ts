@@ -27,6 +27,9 @@ export interface Event {
   cover_image: string | null;
   venue_name: string | null;
   venue_city: string;
+  venue_country?: string;
+  venue_id?: string | null;
+  ticket_url?: string | null;
   venue_lat: number | null;
   venue_lng: number | null;
   starts_at: string;
@@ -49,6 +52,40 @@ export interface TicketType {
   total_quantity: number;
   sold_quantity: number;
   status: TicketStatus;
+}
+
+export interface Venue {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  aliases: string[];
+  description_ar: string | null;
+  description_en: string | null;
+  venue_type: string;
+  city: string;
+  country: string;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  capacity_min: number | null;
+  capacity_max: number | null;
+  cover_image: string | null;
+  images: string[];
+  amenities: string[];
+  website_url: string | null;
+  instagram_url: string | null;
+  google_maps_url: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  price_range: string | null;
+  is_published: boolean;
+  is_featured: boolean;
+  rating: number | null;
+  review_count: number;
+  source_url: string | null;
+  agent_generated: boolean;
+  created_at: string;
 }
 
 export interface Vendor {
