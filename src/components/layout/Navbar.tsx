@@ -2,7 +2,7 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Link, useRouter, usePathname } from "@/i18n/routing";
-import { Menu, X, Globe, LayoutDashboard, LogOut } from "lucide-react";
+import { Menu, X, Globe, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -14,6 +14,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const isRTL = locale === "ar";
 
@@ -25,6 +26,14 @@ export default function Navbar() {
     });
     return () => subscription.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    const supabase = createClient();
+    supabase.from("profiles").select("role").eq("id", user.id).single().then(({ data }) => {
+      setIsAdmin(data?.role === "admin");
+    });
+  }, [user]);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -94,6 +103,12 @@ export default function Navbar() {
                 <LayoutDashboard size={15} />
                 {isRTL ? "لوحتي" : "Dashboard"}
               </Link>
+              {isAdmin && (
+                <Link href="/admin" className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white transition-colors">
+                  <ShieldCheck size={15} />
+                  {isRTL ? "الإدارة" : "Admin"}
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white transition-colors"
@@ -145,6 +160,11 @@ export default function Navbar() {
                 <Link href="/dashboard" className="text-sm text-brand-warm-white/75" onClick={() => setMenuOpen(false)}>
                   {isRTL ? "لوحتي" : "Dashboard"}
                 </Link>
+                {isAdmin && (
+                  <Link href="/admin" className="text-sm text-brand-warm-white/75" onClick={() => setMenuOpen(false)}>
+                    {isRTL ? "الإدارة" : "Admin"}
+                  </Link>
+                )}
                 <button
                   onClick={() => { setMenuOpen(false); handleLogout(); }}
                   className="text-sm font-semibold text-brand-midnight px-4 py-2 rounded-full bg-gradient-to-br from-brand-gold-light to-brand-gold"
