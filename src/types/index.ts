@@ -133,10 +133,24 @@ export interface CrowdfundingCampaign {
   title_en: string;
   description_ar: string | null;
   description_en: string | null;
+  cover_image: string | null;
   goal_amount: number;
   raised_amount: number;
-  currency: "SAR" | "AED";
+  currency: "SAR" | "AED" | "KWD" | "QAR" | "USD";
   deadline: string;
   status: "active" | "funded" | "expired" | "cancelled";
+  backer_count: number;
   created_at: string;
+}
+
+export interface Contribution {
+  id: string;
+  campaign_id: string;
+  user_id: string;
+  amount: number;
+  currency: string;
+  is_anonymous: boolean;
+  payment_ref: string | null;
+  created_at: string;
+  profiles?: { full_name: string | null; avatar_url: string | null } | null;
 }

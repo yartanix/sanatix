@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
@@ -17,7 +18,11 @@ const roles: { value: Role; labelKey: string; icon: string }[] = [
 export default function RegisterPage() {
   const t = useTranslations();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  const next = searchParams.get("next");
+  const redirectTo = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
 
   const [step, setStep] = useState<1 | 2>(1);
   const [role, setRole] = useState<Role>("customer");
@@ -49,6 +54,10 @@ export default function RegisterPage() {
       return;
     }
 
+    if (next && redirectTo !== "/dashboard") {
+      window.location.assign(redirectTo);
+      return;
+    }
     router.push("/dashboard");
   }
 
@@ -224,7 +233,10 @@ export default function RegisterPage() {
 
           <p className="text-center text-sm text-brand-ink/50 mt-5">
             {t("auth.alreadyHaveAccount")}{" "}
-            <Link href="/login" className="text-brand-gold hover:underline font-medium">
+            <Link
+              href={next ? { pathname: "/login", query: { next } } : "/login"}
+              className="text-brand-gold hover:underline font-medium"
+            >
               {t("common.login")}
             </Link>
           </p>
