@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       ticket_types (id, price, currency, status)
     `, { count: "exact" })
     .eq("status", "published")
+    .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true })
     .range(offset, offset + limit - 1);
 

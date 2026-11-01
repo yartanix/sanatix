@@ -26,6 +26,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
     .from("events")
     .select("id, title_ar, title_en, cover_image, starts_at, venue_city, category, is_featured, is_free, ticket_url, ticket_types(price, currency)", { count: "exact" })
     .eq("status", "published")
+    .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true })
     .range(offset, offset + PAGE_SIZE - 1);
 
@@ -35,7 +36,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   const [{ data: events, count }, { data: cityRows }] = await Promise.all([
     query,
-    supabase.from("events").select("venue_city").eq("status", "published"),
+    supabase.from("events").select("venue_city").eq("status", "published").gte("starts_at", new Date().toISOString()),
   ]);
 
   const cities = Array.from(new Set((cityRows ?? []).map((r) => r.venue_city).filter(Boolean))).sort();

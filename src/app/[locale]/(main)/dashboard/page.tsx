@@ -51,6 +51,7 @@ export default async function DashboardPage() {
       .from("events")
       .select("id, title_ar, title_en, venue_city, cover_image, starts_at, is_free")
       .eq("status", "published")
+      .gte("starts_at", new Date().toISOString())
       .order("is_featured", { ascending: false })
       .order("view_count", { ascending: false })
       .limit(4),
