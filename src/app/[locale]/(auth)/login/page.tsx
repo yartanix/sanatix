@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
@@ -9,7 +10,15 @@ import { Eye, EyeOff } from "lucide-react";
 export default function LoginPage() {
   const t = useTranslations();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  // Pages that require auth link here with ?next=/wherever-they-came-from
+  // (see the (organizer) and (admin) layouts, and the crowdfunding pledge
+  // form) — only honor an internal path, never an absolute URL, so this
+  // can't be turned into an open redirect.
+  const next = searchParams.get("next");
+  const redirectTo = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +39,13 @@ export default function LoginPage() {
       return;
     }
 
+    // `next` (when present) already carries its own locale prefix, e.g.
+    // "/en/organizer" — a plain navigation, not the locale-aware router
+    // (which would add its own prefix on top and double it up).
+    if (next && redirectTo !== "/dashboard") {
+      window.location.assign(redirectTo);
+      return;
+    }
     router.push("/dashboard");
   }
 
@@ -145,7 +161,10 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-brand-ink/50 mt-5">
             {t("auth.noAccount")}{" "}
-            <Link href="/register" className="text-brand-gold hover:underline font-medium">
+            <Link
+              href={next ? { pathname: "/register", query: { next } } : "/register"}
+              className="text-brand-gold hover:underline font-medium"
+            >
               {t("common.register")}
             </Link>
           </p>

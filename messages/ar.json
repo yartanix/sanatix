@@ -90,6 +90,37 @@
     "getTickets": "احصل على التذاكر",
     "backToVenues": "كل الأماكن"
   },
+  "organizers": {
+    "title": "المنظمون",
+    "subtitle": "الأشخاص والشركات التي تقيم الفعاليات في الخليج",
+    "searchPlaceholder": "ابحث عن منظم بالاسم...",
+    "empty": "لا يوجد منظمون بعد",
+    "emptyHint": "سيظهر المنظمون هنا بمجرد نشر فعالية",
+    "unnamed": "منظم",
+    "eventsHosted": "فعالية",
+    "backToOrganizers": "كل المنظمين",
+    "activeCampaigns": "حملات نشطة",
+    "upcomingEvents": "الفعاليات القادمة",
+    "noUpcoming": "لا توجد فعاليات قادمة حاليًا",
+    "pastEvents": "فعاليات سابقة"
+  },
+  "crowdfunding": {
+    "title": "التمويل الجماعي",
+    "subtitle": "ادعم الفعاليات والأفكار قبل أن تحدث",
+    "empty": "لا توجد حملات نشطة حاليًا",
+    "emptyHint": "ستظهر الحملات هنا بمجرد أن يطلقها المنظمون",
+    "pastCampaigns": "حملات سابقة",
+    "backers": "داعم",
+    "daysLeft": "يوم متبقي",
+    "funded": "تم التمويل",
+    "ended": "انتهت",
+    "cancelled": "ملغاة",
+    "goal": "الهدف",
+    "ofGoal": "من",
+    "about": "عن هذه الحملة",
+    "relatedEvent": "الفعالية المرتبطة",
+    "backToCampaigns": "كل الحملات"
+  },
   "auth": {
     "email": "البريد الإلكتروني",
     "password": "كلمة المرور",

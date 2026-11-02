@@ -90,6 +90,37 @@
     "getTickets": "Get tickets",
     "backToVenues": "All venues"
   },
+  "organizers": {
+    "title": "Organizers",
+    "subtitle": "The people and companies putting on events across the GCC",
+    "searchPlaceholder": "Search organizers by name...",
+    "empty": "No organizers yet",
+    "emptyHint": "Organizers will appear here once they publish an event",
+    "unnamed": "Organizer",
+    "eventsHosted": "events",
+    "backToOrganizers": "All organizers",
+    "activeCampaigns": "Active campaigns",
+    "upcomingEvents": "Upcoming events",
+    "noUpcoming": "No upcoming events right now",
+    "pastEvents": "Past events"
+  },
+  "crowdfunding": {
+    "title": "Crowdfunding",
+    "subtitle": "Back events and ideas before they happen",
+    "empty": "No active campaigns right now",
+    "emptyHint": "Campaigns will appear here once organizers launch one",
+    "pastCampaigns": "Past campaigns",
+    "backers": "backers",
+    "daysLeft": "days left",
+    "funded": "Funded",
+    "ended": "Ended",
+    "cancelled": "Cancelled",
+    "goal": "Goal",
+    "ofGoal": "of",
+    "about": "About this campaign",
+    "relatedEvent": "Related event",
+    "backToCampaigns": "All campaigns"
+  },
   "auth": {
     "email": "Email",
     "password": "Password",
