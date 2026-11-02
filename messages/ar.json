@@ -44,9 +44,24 @@
   },
   "vendors": {
     "title": "الموردون",
+    "subtitle": "اعثر على موردين موثوقين للفعاليات في الخليج",
+    "searchPlaceholder": "ابحث عن مورد بالاسم أو الخدمة...",
+    "allServices": "كل الخدمات",
     "verified": "موثق",
     "contactVendor": "تواصل مع المورد",
-    "viewProfile": "عرض الملف"
+    "viewProfile": "عرض الملف",
+    "empty": "لا يوجد موردون بعد",
+    "emptyHint": "سيظهر الموردون هنا بمجرد انضمامهم للمنصة",
+    "about": "نبذة",
+    "contact": "التواصل",
+    "website": "الموقع الإلكتروني",
+    "instagram": "إنستغرام",
+    "whatsapp": "واتساب",
+    "reviews": "التقييمات",
+    "noReviews": "لا توجد تقييمات بعد",
+    "source": "المصدر",
+    "backToVendors": "كل الموردين",
+    "similarVendors": "موردون مشابهون"
   },
   "venues": {
     "title": "الأماكن",

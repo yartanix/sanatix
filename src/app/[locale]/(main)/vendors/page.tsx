@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import { Search, MapPin, Star } from "lucide-react";
+import { Search } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
+import VendorCard from "@/components/vendors/VendorCard";
 import { VENDOR_CATEGORIES, VENDOR_CATEGORY_LABEL } from "@/lib/constants";
+import type { Vendor } from "@/types";
 
 interface PageProps {
   searchParams: Promise<{ category?: string; city?: string; q?: string }>;
@@ -37,7 +39,12 @@ export default async function VendorsPage({ searchParams }: PageProps) {
   if (category) query = query.eq("category", category);
   if (q)        query = query.or(`name_ar.ilike.%${q}%,name_en.ilike.%${q}%`);
 
-  const { data: vendors } = await query;
+  const { data } = await query;
+  const vendors = (data ?? []) as Vendor[];
+
+  // Cities to offer as filters: only ones that actually have verified vendors.
+  const { data: cityRows } = await supabase.from("vendors").select("city").eq("is_verified", true);
+  const cities = Array.from(new Set((cityRows ?? []).map((r) => r.city as string))).sort();
 
   function buildHref(overrides: Record<string, string | undefined>) {
     const params = new URLSearchParams();
@@ -58,9 +65,7 @@ export default async function VendorsPage({ searchParams }: PageProps) {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-medium text-brand-midnight mb-2">{t("vendors.title")}</h1>
-          <p className="text-brand-ink/55 text-sm">
-            {isRTL ? "اعثر على موردين موثوقين للفعاليات في الخليج" : "Find trusted event suppliers across the GCC"}
-          </p>
+          <p className="text-brand-ink/55 text-sm">{t("vendors.subtitle")}</p>
         </div>
 
         {/* Search */}
@@ -72,10 +77,35 @@ export default async function VendorsPage({ searchParams }: PageProps) {
             type="text"
             name="q"
             defaultValue={q ?? ""}
-            placeholder={isRTL ? "ابحث عن مورد بالاسم أو الخدمة..." : "Search vendors by name or service..."}
+            placeholder={t("vendors.searchPlaceholder")}
             className="w-full ps-11 pe-4 py-3 rounded-xl border border-black/10 bg-white text-sm text-brand-midnight placeholder:text-brand-ink/35 focus:outline-none focus:ring-2 focus:ring-brand-gold/30"
           />
         </form>
+
+        {/* City chips */}
+        {cities.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
+            <Link
+              href={buildHref({ city: undefined })}
+              className={`shrink-0 px-4 py-2 rounded-full text-sm border transition-colors ${
+                !city ? "bg-brand-midnight text-white border-brand-midnight" : "bg-white text-brand-ink/65 border-black/10 hover:border-brand-gold/50"
+              }`}
+            >
+              {t("venues.allCities")}
+            </Link>
+            {cities.map((c) => (
+              <Link
+                key={c}
+                href={buildHref({ city: c })}
+                className={`shrink-0 px-4 py-2 rounded-full text-sm border transition-colors ${
+                  city === c ? "bg-brand-midnight text-white border-brand-midnight" : "bg-white text-brand-ink/65 border-black/10 hover:border-brand-gold/50"
+                }`}
+              >
+                {c}
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* Category chips */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-8">
@@ -85,7 +115,7 @@ export default async function VendorsPage({ searchParams }: PageProps) {
               !category ? "bg-brand-midnight text-white border-brand-midnight" : "bg-white text-brand-ink/65 border-black/10 hover:border-brand-gold/50"
             }`}
           >
-            {isRTL ? "كل الخدمات" : "All Services"}
+            {t("vendors.allServices")}
           </Link>
           {VENDOR_CATEGORIES.map((cat) => (
             <Link
@@ -101,59 +131,16 @@ export default async function VendorsPage({ searchParams }: PageProps) {
         </div>
 
         {/* Results */}
-        {!vendors || vendors.length === 0 ? (
+        {vendors.length === 0 ? (
           <div className="bg-white rounded-2xl border border-black/5 p-16 text-center">
-            <p className="text-brand-ink/60 text-sm mb-1">
-              {isRTL ? "لا يوجد موردون بعد" : "No vendors yet"}
-            </p>
-            <p className="text-brand-ink/40 text-xs">
-              {isRTL ? "سيظهر الموردون هنا بمجرد انضمامهم للمنصة" : "Vendors will appear here once they join the platform"}
-            </p>
+            <p className="text-brand-ink/60 text-sm mb-1">{t("vendors.empty")}</p>
+            <p className="text-brand-ink/40 text-xs">{t("vendors.emptyHint")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {vendors.map((vendor) => {
-              const name = isRTL ? vendor.name_ar : vendor.name_en;
-              return (
-                <div key={vendor.id} className="bg-white rounded-2xl border border-black/5 overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="h-32 bg-brand-sand flex items-center justify-center relative">
-                    {vendor.logo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={vendor.logo} alt={name} className="w-14 h-14 rounded-xl object-cover" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-brand-gold/10 flex items-center justify-center font-medium text-brand-gold text-lg">
-                        {name?.charAt(0) ?? "V"}
-                      </div>
-                    )}
-                    {vendor.is_verified && (
-                      <span className="absolute top-3 start-3 text-xs bg-emerald-500/90 text-white px-2 py-0.5 rounded-full font-medium">
-                        {t("vendors.verified")}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-4 space-y-1.5">
-                    <p className="font-medium text-brand-midnight text-sm truncate">{name}</p>
-                    <p className="text-xs text-brand-ink/50 capitalize">
-                      {VENDOR_CATEGORY_LABEL[vendor.category]?.[isRTL ? "ar" : "en"] ?? vendor.category}
-                    </p>
-                    <div className="flex items-center justify-between pt-1">
-                      {vendor.city && (
-                        <span className="flex items-center gap-1 text-xs text-brand-ink/40">
-                          <MapPin size={11} />
-                          {vendor.city}
-                        </span>
-                      )}
-                      {vendor.rating > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-brand-ink/60">
-                          <Star size={11} className="fill-brand-gold text-brand-gold" />
-                          {vendor.rating.toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {vendors.map((vendor) => (
+              <VendorCard key={vendor.id} vendor={vendor} locale={locale} t={t} />
+            ))}
           </div>
         )}
 

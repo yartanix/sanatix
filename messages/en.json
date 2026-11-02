@@ -44,9 +44,24 @@
   },
   "vendors": {
     "title": "Vendors",
+    "subtitle": "Find trusted event suppliers across the GCC",
+    "searchPlaceholder": "Search vendors by name or service...",
+    "allServices": "All Services",
     "verified": "Verified",
     "contactVendor": "Contact Vendor",
-    "viewProfile": "View Profile"
+    "viewProfile": "View Profile",
+    "empty": "No vendors yet",
+    "emptyHint": "Vendors will appear here once they join the platform",
+    "about": "About",
+    "contact": "Contact",
+    "website": "Website",
+    "instagram": "Instagram",
+    "whatsapp": "WhatsApp",
+    "reviews": "Reviews",
+    "noReviews": "No reviews yet",
+    "source": "Source",
+    "backToVendors": "All vendors",
+    "similarVendors": "Similar vendors"
   },
   "venues": {
     "title": "Venues",

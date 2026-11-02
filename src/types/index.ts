@@ -96,13 +96,20 @@ export interface Vendor {
   description_ar: string | null;
   description_en: string | null;
   logo_url: string | null;
+  cover_url: string | null;
   category: string;
   city: string;
   country: string;
   is_verified: boolean;
   is_featured: boolean;
+  is_premium: boolean;
   rating: number | null;
   review_count: number;
+  instagram_url: string | null;
+  whatsapp: string | null;
+  website_url: string | null;
+  source_url?: string | null;
+  agent_generated?: boolean;
   created_at: string;
 }
 
