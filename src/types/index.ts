@@ -106,6 +106,18 @@ export interface Vendor {
   created_at: string;
 }
 
+export interface Review {
+  id: string;
+  user_id: string;
+  vendor_id: string | null;
+  event_id: string | null;
+  rating: number;
+  comment_ar: string | null;
+  comment_en: string | null;
+  created_at: string;
+  profiles?: { full_name: string | null; avatar_url: string | null } | null;
+}
+
 export interface CrowdfundingCampaign {
   id: string;
   organizer_id: string;
