@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLocale } from "next-intl/server";
-import { CheckCircle, Calendar, MapPin, Download, Share2 } from "lucide-react";
+import { CheckCircle, Calendar, MapPin, Download } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import { Link } from "@/i18n/routing";
+import ShareButton from "@/components/bookings/ShareButton";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
 
 interface ConfirmPageProps {
@@ -116,10 +117,7 @@ export default async function BookingConfirmPage({ params }: ConfirmPageProps) {
             <Download size={15} />
             {isRTL ? "تحميل" : "Download"}
           </button>
-          <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-black/10 bg-white text-sm text-brand-ink/70 hover:bg-brand-sand transition-colors">
-            <Share2 size={15} />
-            {isRTL ? "مشاركة" : "Share"}
-          </button>
+          <ShareButton title={eventTitle} isRTL={isRTL} />
         </div>
 
         <Link
