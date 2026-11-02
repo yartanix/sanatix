@@ -53,10 +53,10 @@ export default async function BookingsPage() {
               <Ticket size={24} className="text-brand-ink/30" />
             </div>
             <p className="text-brand-ink/50 mb-4">
-              {isRTL ? "لا توجد حجوزات Ȩعد" : "No bookings yet"}
+              {isRTL ? "لا توجد حجوزات بعد" : "No bookings yet"}
             </p>
             <Link href="/events" className="text-sm text-brand-gold hover:underline">
-              {isRTL ? "استكشف الفضاليات" : "Browse events"}
+              {isRTL ? "استكشف الفعاليات" : "Browse events"}
             </Link>
           </div>
         ) : (
