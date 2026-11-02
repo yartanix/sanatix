@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Calendar, MapPin, Share2, Heart, ExternalLink, Star } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, Star } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import Navbar from "@/components/layout/Navbar";
 import TicketSelector from "@/components/events/TicketSelector";
 import ReviewForm from "@/components/events/ReviewForm";
+import EventActions from "@/components/events/EventActions";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import type { Review } from "@/types";
 
@@ -33,7 +34,7 @@ export default async function EventPage({ params }: EventPageProps) {
   const isRTL = locale === "ar";
 
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: reviewRows }, { data: canReviewBooking }] = await Promise.all([
+  const [{ data: reviewRows }, { data: canReviewBooking }, { data: favoriteRow }] = await Promise.all([
     supabase
       .from("reviews")
       .select("*, profiles(full_name, avatar_url)")
@@ -50,10 +51,19 @@ export default async function EventPage({ params }: EventPageProps) {
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    user
+      ? supabase
+          .from("favorites")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("event_id", event.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   const reviews = (reviewRows ?? []) as Review[];
   const myReview = user ? reviews.find((r) => r.user_id === user.id) ?? null : null;
   const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null;
+  const isSaved = Boolean(favoriteRow);
 
   return (
     <div className="min-h-screen bg-brand-warm-white">
@@ -97,14 +107,7 @@ export default async function EventPage({ params }: EventPageProps) {
                   {title}
                 </h1>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button className="p-2.5 rounded-xl border border-black/10 bg-white hover:bg-brand-sand transition-colors">
-                  <Heart size={18} className="text-brand-ink/50" />
-                </button>
-                <button className="p-2.5 rounded-xl border border-black/10 bg-white hover:bg-brand-sand transition-colors">
-                  <Share2 size={18} className="text-brand-ink/50" />
-                </button>
-              </div>
+              <EventActions eventId={event.id} initiallySaved={isSaved} title={title} isRTL={isRTL} />
             </div>
 
             {/* Meta info */}

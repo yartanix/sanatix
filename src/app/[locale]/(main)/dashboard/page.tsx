@@ -3,7 +3,7 @@ import { getLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import { Link } from "@/i18n/routing";
-import { Calendar, Ticket, Wallet, Star, TrendingUp, Plus, Store, MapPin } from "lucide-react";
+import { Calendar, Ticket, Wallet, Star, TrendingUp, Plus, Store, MapPin, Heart } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 
 interface BookingRow {
@@ -79,6 +79,7 @@ export default async function DashboardPage() {
 
   const quickActions = [
     { label_ar: "استكشف الفعاليات", label_en: "Browse Events", href: "/events" as const, icon: Calendar, primary: false },
+    { label_ar: "الفعاليات المحفوظة", label_en: "Saved Events", href: "/favorites" as const, icon: Heart, primary: false },
     { label_ar: "ابحث عن موردين", label_en: "Find Vendors", href: "/vendors" as const, icon: Store, primary: false },
     { label_ar: "لوحة المنظم", label_en: "Organizer Hub", href: "/organizer" as const, icon: Plus, primary: true },
   ];
