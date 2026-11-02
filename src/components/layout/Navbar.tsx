@@ -2,7 +2,7 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Link, useRouter, usePathname } from "@/i18n/routing";
-import { Menu, X, Globe, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
+import { Menu, X, Globe, LayoutDashboard, LogOut, ShieldCheck, PartyPopper } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -90,6 +90,13 @@ export default function Navbar() {
 
         {/* Actions */}
         <div className="hidden md:flex items-center gap-4">
+          <Link
+            href="/plan-a-party"
+            className="flex items-center gap-1.5 text-sm font-semibold text-brand-midnight px-4 py-2 rounded-full bg-gradient-to-br from-brand-gold-light to-brand-gold hover:opacity-90 transition-opacity shadow-[0_8px_24px_-8px_rgba(200,151,58,0.55)]"
+          >
+            <PartyPopper size={14} />
+            {isRTL ? "خطط لحفلة" : "Plan a Party"}
+          </Link>
           <button
             onClick={toggleLocale}
             className="flex items-center gap-1.5 text-xs font-medium text-brand-warm-white/70 hover:text-brand-warm-white transition-colors border border-white/15 rounded-full px-3 py-1.5"
@@ -124,7 +131,7 @@ export default function Navbar() {
               </Link>
               <Link
                 href="/register"
-                className="text-sm font-semibold text-brand-midnight px-4 py-2 rounded-full bg-gradient-to-br from-brand-gold-light to-brand-gold hover:opacity-90 transition-opacity shadow-[0_8px_24px_-8px_rgba(200,151,58,0.55)]"
+                className="text-sm font-semibold text-brand-warm-white px-4 py-2 rounded-full border border-white/20 hover:border-white/40 transition-colors"
               >
                 {t("common.register")}
               </Link>
@@ -144,6 +151,14 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden bg-brand-midnight border-t border-white/[0.08] px-6 py-4 space-y-4">
+          <Link
+            href="/plan-a-party"
+            onClick={() => setMenuOpen(false)}
+            className="flex items-center justify-center gap-1.5 text-sm font-semibold text-brand-midnight px-4 py-2.5 rounded-full bg-gradient-to-br from-brand-gold-light to-brand-gold"
+          >
+            <PartyPopper size={14} />
+            {isRTL ? "خطط لحفلة" : "Plan a Party"}
+          </Link>
           {navLinks.map((l) => (
             <Link
               key={l.href}
@@ -175,7 +190,7 @@ export default function Navbar() {
             ) : (
               <>
                 <Link href="/login" className="text-sm text-brand-warm-white/75" onClick={() => setMenuOpen(false)}>{t("common.login")}</Link>
-                <Link href="/register" className="text-sm font-semibold text-brand-midnight px-4 py-2 rounded-full bg-gradient-to-br from-brand-gold-light to-brand-gold" onClick={() => setMenuOpen(false)}>
+                <Link href="/register" className="text-sm font-semibold text-brand-warm-white px-4 py-2 rounded-full border border-white/20" onClick={() => setMenuOpen(false)}>
                   {t("common.register")}
                 </Link>
               </>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Search, CalendarDays, MapPin, Sparkles, ArrowRight } from "lucide-react";
+import { Search, CalendarDays, MapPin, Sparkles, ArrowRight, PartyPopper } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/layout/Navbar";
@@ -110,6 +110,25 @@ export default async function HomePage() {
               </Link>
             ))}
           </div>
+
+          {/* Plan a Party CTA */}
+          <Link
+            href="/plan-a-party"
+            className="mt-9 inline-flex items-center gap-2.5 bg-white/[0.06] hover:bg-white/[0.1] border border-white/15 hover:border-brand-gold/40 rounded-2xl px-6 py-4 transition-colors"
+          >
+            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-gold-light to-brand-gold flex items-center justify-center shrink-0">
+              <PartyPopper size={16} className="text-brand-midnight" />
+            </span>
+            <span className="text-start">
+              <span className="block text-sm font-semibold text-brand-warm-white">
+                {isRTL ? "لا تعرف من أين تبدأ؟" : "Not sure where to start?"}
+              </span>
+              <span className="block text-xs text-brand-warm-white/55">
+                {isRTL ? "أجب عن بضعة أسئلة ونخطط لك" : "Answer a few questions and we'll plan it with you"}
+              </span>
+            </span>
+            <ArrowRight size={16} className={`text-brand-gold-light ms-2 shrink-0 ${isRTL ? "rotate-180" : ""}`} />
+          </Link>
         </div>
       </section>
 
