@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
@@ -5,12 +6,33 @@ import { Search, CalendarDays, MapPin } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { EVENT_CATEGORIES, EVENT_CATEGORY_LABEL } from "@/lib/constants";
+import { buildMetadata } from "@/lib/seo";
 
 interface PageProps {
   searchParams: Promise<{ category?: string; city?: string; q?: string; page?: string }>;
 }
 
 const PAGE_SIZE = 12;
+
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const { category, city } = await searchParams;
+  const locale = await getLocale();
+  const isRTL = locale === "ar";
+  const categoryLabel = category ? EVENT_CATEGORY_LABEL[category]?.[isRTL ? "ar" : "en"] : null;
+
+  const title = [categoryLabel, city, isRTL ? "فعاليات" : "Events"]
+    .filter(Boolean)
+    .join(isRTL ? " في " : " in ") || (isRTL ? "الفعاليات" : "Events");
+
+  return buildMetadata({
+    path: "/events",
+    locale,
+    title: `${title} | Sanatix`,
+    description: isRTL
+      ? "استكشف حفلات الأطفال، الأعراس، الحفلات الموسيقية والمعارض والمؤتمرات في السعودية والإمارات وبقية دول الخليج، واحجز تذاكرك مباشرة."
+      : "Browse kids' parties, weddings, concerts, exhibitions, and conferences across Saudi Arabia, the UAE, and the GCC, and book tickets directly.",
+  });
+}
 
 export default async function EventsPage({ searchParams }: PageProps) {
   const { category, city, q, page: pageParam } = await searchParams;

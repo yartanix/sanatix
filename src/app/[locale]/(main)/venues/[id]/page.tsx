@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -5,11 +6,40 @@ import { MapPin, Users, Globe, Instagram, Phone, MessageCircle, Navigation, Mail
 import Navbar from "@/components/layout/Navbar";
 import EventCard from "@/components/events/EventCard";
 import { Link } from "@/i18n/routing";
-import { VENUE_TYPE_LABEL } from "@/lib/constants";
+import { VENUE_TYPE_LABEL, SITE_URL } from "@/lib/constants";
+import { buildMetadata, trimDescription, jsonLd } from "@/lib/seo";
 import type { Venue, Event } from "@/types";
 
 interface VenuePageProps {
   params: Promise<{ locale: string; id: string }>;
+}
+
+export async function generateMetadata({ params }: VenuePageProps): Promise<Metadata> {
+  const { id } = await params;
+  const locale = await getLocale();
+  const isRTL = locale === "ar";
+  const supabase = await createClient();
+  const { data: venue } = await supabase
+    .from("venues")
+    .select("name_ar, name_en, description_ar, description_en, cover_image, city, venue_type")
+    .eq("id", id)
+    .eq("is_published", true)
+    .single();
+
+  if (!venue) return buildMetadata({ path: `/venues/${id}`, locale, title: "Sanatix", description: "" });
+
+  const name = isRTL ? venue.name_ar : venue.name_en;
+  const typeLabel = VENUE_TYPE_LABEL[venue.venue_type]?.[isRTL ? "ar" : "en"] ?? venue.venue_type;
+  const description = trimDescription(isRTL ? venue.description_ar : venue.description_en) ||
+    (isRTL ? `${name} — ${typeLabel} في ${venue.city}` : `${name} — ${typeLabel} in ${venue.city}`);
+
+  return buildMetadata({
+    path: `/venues/${id}`,
+    locale,
+    title: `${name} | Sanatix`,
+    description,
+    image: venue.cover_image,
+  });
 }
 
 export default async function VenuePage({ params }: VenuePageProps) {
@@ -62,8 +92,29 @@ export default async function VenuePage({ params }: VenuePageProps) {
 
   const contactBtn = "flex items-center gap-2 px-4 py-2.5 rounded-xl border border-black/10 bg-white text-sm text-brand-midnight hover:border-brand-gold/50 hover:bg-brand-sand transition-colors";
 
+  const venueSchema = jsonLd({
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name,
+    description: description ?? undefined,
+    image: venue.cover_image ? [venue.cover_image] : undefined,
+    url: `${SITE_URL}/venues/${venue.id}`,
+    telephone: venue.phone ?? undefined,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: venue.address ?? undefined,
+      addressLocality: venue.city,
+      addressCountry: venue.country,
+    },
+    geo: venue.lat && venue.lng ? { "@type": "GeoCoordinates", latitude: venue.lat, longitude: venue.lng } : undefined,
+    aggregateRating: venue.rating
+      ? { "@type": "AggregateRating", ratingValue: venue.rating, reviewCount: venue.review_count || 1 }
+      : undefined,
+  });
+
   return (
     <div className="min-h-screen bg-brand-warm-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={venueSchema} />
       <Navbar />
 
       {/* Cover */}

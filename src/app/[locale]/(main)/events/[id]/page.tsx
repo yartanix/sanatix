@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -8,11 +9,42 @@ import TicketSelector from "@/components/events/TicketSelector";
 import ReviewForm from "@/components/events/ReviewForm";
 import EventActions from "@/components/events/EventActions";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { EVENT_CATEGORY_LABEL } from "@/lib/constants";
+import { EVENT_CATEGORY_LABEL, SITE_URL } from "@/lib/constants";
+import { buildMetadata, trimDescription, jsonLd } from "@/lib/seo";
 import type { Review } from "@/types";
 
 interface EventPageProps {
   params: Promise<{ locale: string; id: string }>;
+}
+
+export async function generateMetadata({ params }: EventPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const locale = await getLocale();
+  const isRTL = locale === "ar";
+  const supabase = await createClient();
+  const { data: event } = await supabase
+    .from("events")
+    .select("title_ar, title_en, description_ar, description_en, cover_image, venue_city, starts_at")
+    .eq("id", id)
+    .eq("status", "published")
+    .single();
+
+  if (!event) return buildMetadata({ path: `/events/${id}`, locale, title: "Sanatix", description: "" });
+
+  const title = isRTL ? event.title_ar : event.title_en;
+  const description = trimDescription(isRTL ? event.description_ar : event.description_en) ||
+    (isRTL
+      ? `${title} — ${event.venue_city}، ${formatDate(event.starts_at, "ar-SA")}`
+      : `${title} — ${event.venue_city}, ${formatDate(event.starts_at, "en-US")}`);
+
+  return buildMetadata({
+    path: `/events/${id}`,
+    locale,
+    title: `${title} | Sanatix`,
+    description,
+    image: event.cover_image,
+    type: "article",
+  });
 }
 
 export default async function EventPage({ params }: EventPageProps) {
@@ -66,8 +98,50 @@ export default async function EventPage({ params }: EventPageProps) {
   const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null;
   const isSaved = Boolean(favoriteRow);
 
+  const venueName = event.venues
+    ? (isRTL ? event.venues.name_ar : event.venues.name_en)
+    : event.venue_name;
+
+  const eventSchema = jsonLd({
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: title,
+    description: description ?? undefined,
+    startDate: event.starts_at,
+    endDate: event.ends_at ?? undefined,
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    image: event.cover_image ? [event.cover_image] : undefined,
+    url: `${SITE_URL}/events/${event.id}`,
+    location: {
+      "@type": "Place",
+      name: venueName ?? event.venue_city,
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: event.venues?.address ?? undefined,
+        addressLocality: event.venue_city,
+      },
+    },
+    offers: (event.ticket_types ?? []).length > 0
+      ? event.ticket_types!.map((tt: { price: number; currency?: string }) => ({
+          "@type": "Offer",
+          price: tt.price,
+          priceCurrency: tt.currency ?? "SAR",
+          availability: "https://schema.org/InStock",
+          url: `${SITE_URL}/events/${event.id}`,
+        }))
+      : event.is_free
+        ? { "@type": "Offer", price: 0, priceCurrency: "SAR", availability: "https://schema.org/InStock" }
+        : undefined,
+    organizer: {
+      "@type": "Organization",
+      name: event.profiles?.full_name ?? "Sanatix",
+    },
+  });
+
   return (
     <div className="min-h-screen bg-brand-warm-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={eventSchema} />
       <Navbar />
 
       {/* Cover image */}

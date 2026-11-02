@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -5,11 +6,40 @@ import { MapPin, Globe, Instagram, MessageCircle, Star, ArrowLeft, ArrowRight } 
 import Navbar from "@/components/layout/Navbar";
 import VendorCard from "@/components/vendors/VendorCard";
 import { Link } from "@/i18n/routing";
-import { VENDOR_CATEGORY_LABEL } from "@/lib/constants";
+import { VENDOR_CATEGORY_LABEL, SITE_URL } from "@/lib/constants";
+import { buildMetadata, trimDescription, jsonLd } from "@/lib/seo";
 import type { Vendor, Review } from "@/types";
 
 interface VendorPageProps {
   params: Promise<{ locale: string; id: string }>;
+}
+
+export async function generateMetadata({ params }: VendorPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const locale = await getLocale();
+  const isRTL = locale === "ar";
+  const supabase = await createClient();
+  const { data: vendor } = await supabase
+    .from("vendors")
+    .select("name_ar, name_en, description_ar, description_en, cover_url, logo_url, city, category")
+    .eq("id", id)
+    .eq("is_verified", true)
+    .single();
+
+  if (!vendor) return buildMetadata({ path: `/vendors/${id}`, locale, title: "Sanatix", description: "" });
+
+  const name = isRTL ? vendor.name_ar : vendor.name_en;
+  const categoryLabel = VENDOR_CATEGORY_LABEL[vendor.category]?.[isRTL ? "ar" : "en"] ?? vendor.category;
+  const description = trimDescription(isRTL ? vendor.description_ar : vendor.description_en) ||
+    (isRTL ? `${name} — ${categoryLabel} في ${vendor.city}` : `${name} — ${categoryLabel} in ${vendor.city}`);
+
+  return buildMetadata({
+    path: `/vendors/${id}`,
+    locale,
+    title: `${name} | Sanatix`,
+    description,
+    image: vendor.cover_url ?? vendor.logo_url,
+  });
 }
 
 export default async function VendorPage({ params }: VendorPageProps) {
@@ -55,8 +85,26 @@ export default async function VendorPage({ params }: VendorPageProps) {
 
   const contactBtn = "flex items-center gap-2 px-4 py-2.5 rounded-xl border border-black/10 bg-white text-sm text-brand-midnight hover:border-brand-gold/50 hover:bg-brand-sand transition-colors";
 
+  const vendorSchema = jsonLd({
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name,
+    description: description ?? undefined,
+    image: vendor.cover_url ? [vendor.cover_url] : vendor.logo_url ? [vendor.logo_url] : undefined,
+    url: `${SITE_URL}/vendors/${vendor.id}`,
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: vendor.city,
+      addressCountry: vendor.country,
+    },
+    aggregateRating: vendor.rating
+      ? { "@type": "AggregateRating", ratingValue: vendor.rating, reviewCount: vendor.review_count || 1 }
+      : undefined,
+  });
+
   return (
     <div className="min-h-screen bg-brand-warm-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={vendorSchema} />
       <Navbar />
 
       {/* Cover */}

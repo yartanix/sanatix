@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
@@ -5,10 +6,31 @@ import { Search } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import VenueCard from "@/components/venues/VenueCard";
 import { VENUE_TYPES, VENUE_TYPE_LABEL, ALL_SWEEP_CITIES } from "@/lib/constants";
+import { buildMetadata } from "@/lib/seo";
 import type { Venue } from "@/types";
 
 interface PageProps {
   searchParams: Promise<{ type?: string; city?: string; q?: string }>;
+}
+
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const { type, city } = await searchParams;
+  const locale = await getLocale();
+  const isRTL = locale === "ar";
+  const typeLabel = type ? VENUE_TYPE_LABEL[type]?.[isRTL ? "ar" : "en"] : null;
+
+  const title = [typeLabel, city, isRTL ? "قاعات وأماكن للحفلات" : "Party Venues"]
+    .filter(Boolean)
+    .join(isRTL ? " في " : " in ");
+
+  return buildMetadata({
+    path: "/venues",
+    locale,
+    title: `${title} | Sanatix`,
+    description: isRTL
+      ? "ابحث عن أفضل قاعات الحفلات ومراكز ألعاب الأطفال والفنادق وصالات الحفلات في مدن الخليج، مع السعة والموقع وطرق التواصل."
+      : "Find the best kids' play centers, hotels, halls, and party venues across GCC cities, with capacity, location, and direct contact details.",
+  });
 }
 
 export default async function VenuesPage({ searchParams }: PageProps) {
