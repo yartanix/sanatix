@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Calendar, MapPin, Share2, Heart, ExternalLink } from "lucide-react";
+import { Calendar, MapPin, Share2, Heart, ExternalLink, Star } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import Navbar from "@/components/layout/Navbar";
 import TicketSelector from "@/components/events/TicketSelector";
+import ReviewForm from "@/components/events/ReviewForm";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import type { Review } from "@/types";
 
 interface EventPageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -29,6 +31,29 @@ export default async function EventPage({ params }: EventPageProps) {
   const title = locale === "ar" ? event.title_ar : event.title_en;
   const description = locale === "ar" ? event.description_ar : event.description_en;
   const isRTL = locale === "ar";
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: reviewRows }, { data: canReviewBooking }] = await Promise.all([
+    supabase
+      .from("reviews")
+      .select("*, profiles(full_name, avatar_url)")
+      .eq("event_id", event.id)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    user
+      ? supabase
+          .from("bookings")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("event_id", event.id)
+          .neq("status", "cancelled")
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const reviews = (reviewRows ?? []) as Review[];
+  const myReview = user ? reviews.find((r) => r.user_id === user.id) ?? null : null;
+  const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null;
 
   return (
     <div className="min-h-screen bg-brand-warm-white">
@@ -152,6 +177,66 @@ export default async function EventPage({ params }: EventPageProps) {
                 </div>
               </div>
             )}
+
+            {/* Reviews */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <h2 className="text-lg font-medium text-brand-midnight">
+                  {isRTL ? "التقييمات" : "Reviews"}
+                </h2>
+                {avgRating !== null && (
+                  <span className="flex items-center gap-1 text-sm text-brand-ink/60">
+                    <Star size={14} className="text-brand-gold fill-brand-gold" />
+                    {avgRating.toFixed(1)} · {reviews.length}
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-3 mb-4">
+                {reviews.length === 0 ? (
+                  <p className="text-sm text-brand-ink/40">
+                    {isRTL ? "لا توجد تقييمات بعد" : "No reviews yet"}
+                  </p>
+                ) : (
+                  reviews.map((r) => {
+                    const comment = isRTL ? r.comment_ar : r.comment_en;
+                    return (
+                      <div key={r.id} className="bg-white rounded-2xl border border-black/5 p-4">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <p className="text-sm font-medium text-brand-midnight">
+                            {r.user_id === user?.id
+                              ? (isRTL ? "أنت" : "You")
+                              : r.profiles?.full_name ?? (isRTL ? "مستخدم" : "User")}
+                          </p>
+                          <div className="flex items-center gap-0.5">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                size={12}
+                                className={i < r.rating ? "text-brand-gold fill-brand-gold" : "text-brand-ink/15"}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        {comment && <p className="text-sm text-brand-ink/65 leading-relaxed">{comment}</p>}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {canReviewBooking && (
+                <ReviewForm
+                  eventId={event.id}
+                  isRTL={isRTL}
+                  existingReview={
+                    myReview
+                      ? { rating: myReview.rating, comment: (isRTL ? myReview.comment_ar : myReview.comment_en) ?? "" }
+                      : null
+                  }
+                />
+              )}
+            </div>
 
           </div>
 
