@@ -18,6 +18,7 @@ export default async function HomePage() {
     .from("events")
     .select("id, title_ar, title_en, venue_city, cover_image, starts_at, is_free, is_featured, ticket_url, ticket_types(price, currency)")
     .eq("status", "published")
+    .gte("starts_at", new Date().toISOString())
     .order("is_featured", { ascending: false })
     .order("view_count", { ascending: false })
     .limit(3);
