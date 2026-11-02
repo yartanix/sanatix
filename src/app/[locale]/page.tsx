@@ -105,7 +105,7 @@ export default async function HomePage() {
           <div className="flex items-end justify-between mb-7">
             <div>
               <p className="text-xs font-semibold tracking-wide text-[#8A5E12] uppercase mb-1.5">
-                {isRTL ? "مثالية لاحتفالك القادم" : "Perfect for your next celebration"}
+                {isRTL ? "فعاليات مختارة لك" : "Handpicked for you"}
               </p>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-brand-midnight">{t("home.featuredEvents")}</h2>
             </div>
