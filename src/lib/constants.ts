@@ -1,49 +1,62 @@
 // Shared taxonomy used by both the organizer event form and the public
 // events listing/filtering, so filter chips always match real event data.
+// Kids' parties and family events lead this list on purpose — they're the
+// platform's primary focus. Concerts/conferences (mostly under
+// "entertainment" and "conference") are kept as real, bookable categories,
+// just no longer what the homepage and default filters lead with.
 export const EVENT_CATEGORIES = [
-  "conference", "wedding", "exhibition", "sports",
-  "entertainment", "family", "community", "corporate",
+  "kids_party", "family", "wedding", "entertainment",
+  "exhibition", "sports", "community", "corporate", "conference",
 ] as const;
 
 export const EVENT_CATEGORY_LABEL: Record<string, { ar: string; en: string }> = {
-  conference:    { ar: "مؤتمرات",   en: "Conferences" },
-  wedding:       { ar: "أعراس",     en: "Weddings" },
-  exhibition:    { ar: "معارض",     en: "Exhibitions" },
-  sports:        { ar: "رياضة",     en: "Sports" },
-  entertainment: { ar: "ترفيه",     en: "Entertainment" },
-  family:        { ar: "عائلية",    en: "Family Events" },
-  community:     { ar: "مجتمعية",   en: "Community Events" },
-  corporate:     { ar: "شركات",     en: "Corporate Events" },
+  kids_party:    { ar: "حفلات أطفال", en: "Kids' Parties" },
+  family:        { ar: "عائلية",      en: "Family Events" },
+  wedding:       { ar: "أعراس",       en: "Weddings" },
+  entertainment: { ar: "ترفيه",       en: "Entertainment" },
+  exhibition:    { ar: "معارض",       en: "Exhibitions" },
+  sports:        { ar: "رياضة",       en: "Sports" },
+  community:     { ar: "مجتمعية",     en: "Community Events" },
+  corporate:     { ar: "شركات",       en: "Corporate Events" },
+  conference:    { ar: "مؤتمرات",     en: "Conferences" },
 };
 
 // Vendors don't have a real onboarding flow yet, so there's no live data to
 // derive this from — kept as a reasonable placeholder taxonomy for the
-// filter chips until a supplier registration form exists.
+// filter chips until a supplier registration form exists. Kids'-party
+// vendor types lead the list for the same reason the event categories do.
+// Existing slugs (catering, decoration, etc.) are kept as-is rather than
+// renamed, since live vendor rows already use them.
 export const VENDOR_CATEGORIES = [
-  "catering", "photography", "decoration", "sound-lighting",
-  "venue", "entertainment", "flowers", "transport", "printing",
+  "kids-entertainment", "bounce-houses", "cakes-desserts", "venue",
+  "catering", "decoration", "entertainment", "photography",
+  "flowers", "sound-lighting", "transport", "printing",
 ] as const;
 
 export const VENDOR_CATEGORY_LABEL: Record<string, { ar: string; en: string }> = {
-  catering:        { ar: "ضيافة",         en: "Catering" },
-  photography:     { ar: "تصوير",         en: "Photography" },
-  decoration:      { ar: "ديكور",         en: "Decoration" },
-  "sound-lighting": { ar: "صوت وإضاءة",   en: "Sound & Lighting" },
-  venue:           { ar: "قاعات",         en: "Venues" },
-  entertainment:   { ar: "ترفيه",         en: "Entertainment" },
-  flowers:         { ar: "ورد",           en: "Flowers" },
-  transport:       { ar: "نقل",           en: "Transport" },
-  printing:        { ar: "طباعة",         en: "Printing" },
+  "kids-entertainment": { ar: "ترفيه أطفال",     en: "Kids' Entertainment" },
+  "bounce-houses":      { ar: "ألعاب نفخ",        en: "Bounce Houses" },
+  "cakes-desserts":     { ar: "كيك وحلويات",      en: "Cakes & Desserts" },
+  venue:                { ar: "قاعات",            en: "Venues" },
+  catering:             { ar: "ضيافة",            en: "Catering" },
+  decoration:           { ar: "ديكور",            en: "Decoration" },
+  entertainment:        { ar: "ترفيه",            en: "Entertainment" },
+  photography:          { ar: "تصوير",            en: "Photography" },
+  flowers:              { ar: "ورد",              en: "Flowers" },
+  "sound-lighting":     { ar: "صوت وإضاءة",       en: "Sound & Lighting" },
+  transport:            { ar: "نقل",              en: "Transport" },
+  printing:             { ar: "طباعة",            en: "Printing" },
 };
 
 export const VENUE_TYPES = [
-  "hotel", "ballroom", "hall", "conference_center", "arena", "stadium",
+  "kids_play_center", "hotel", "ballroom", "hall", "conference_center", "arena", "stadium",
   "theater", "outdoor", "restaurant", "cultural", "exhibition_center", "other",
 ] as const;
 
 export type VenueType = (typeof VENUE_TYPES)[number];
 
 export const VENUE_TYPE_LABEL: Record<string, { ar: string; en: string }> = {
+  kids_play_center:  { ar: "مركز ألعاب أطفال", en: "Kids' Play Center" },
   hotel:             { ar: "فندق",           en: "Hotel" },
   ballroom:          { ar: "قاعة احتفالات",  en: "Ballroom" },
   hall:              { ar: "قاعة",           en: "Hall" },

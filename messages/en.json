@@ -24,11 +24,11 @@
     "dashboard": "Dashboard"
   },
   "home": {
-    "hero": "Light up your moments",
-    "heroSub": "Discover events, book tickets, and find the best event vendors across the GCC",
-    "searchPlaceholder": "Search events, vendors, or organizers...",
-    "featuredEvents": "Featured Events",
-    "topVendors": "Top Vendors",
+    "hero": "Unforgettable parties for your kids",
+    "heroSub": "Find kids' entertainers, party venues, cakes, and everything you need to plan your child's perfect celebration across the GCC",
+    "searchPlaceholder": "Search party venues, entertainers, cakes...",
+    "featuredEvents": "Family-Friendly Events",
+    "topVendors": "Top Party Vendors",
     "upcomingEvents": "Upcoming Events"
   },
   "events": {
