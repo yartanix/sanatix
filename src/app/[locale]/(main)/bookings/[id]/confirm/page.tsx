@@ -82,7 +82,7 @@ export default async function BookingConfirmPage({ params }: ConfirmPageProps) {
 
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-brand-ink/50">{isRTL ? "نوع ةلتذكر٩" : "Ticket type"}</span>
+                <span className="text-brand-ink/50">{isRTL ? "نوع التذكرة" : "Ticket type"}</span>
                 <span className="font-medium text-brand-midnight">{ticketName}</span>
               </div>
               <div className="flex justify-between text-sm">
@@ -90,7 +90,7 @@ export default async function BookingConfirmPage({ params }: ConfirmPageProps) {
                 <span className="font-medium text-brand-midnight">{booking.quantity}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-brand-ink/50">{isRTL ? "ةلمبلت الإجمالي" : "Total"}</span>
+                <span className="text-brand-ink/50">{isRTL ? "المبلغ الإجمالي" : "Total"}</span>
                 <span className="font-medium text-brand-gold">
                   {booking.total_amount === 0
                     ? (isRTL ? "مجاني" : "Free")
@@ -118,7 +118,7 @@ export default async function BookingConfirmPage({ params }: ConfirmPageProps) {
           </button>
           <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-black/10 bg-white text-sm text-brand-ink/70 hover:bg-brand-sand transition-colors">
             <Share2 size={15} />
-            {isRTL ? "مساركة" : "Share"}
+            {isRTL ? "مشاركة" : "Share"}
           </button>
         </div>
 
