@@ -8,6 +8,7 @@ import Navbar from "@/components/layout/Navbar";
 import TicketSelector from "@/components/events/TicketSelector";
 import ReviewForm from "@/components/events/ReviewForm";
 import EventActions from "@/components/events/EventActions";
+import OutboundLink from "@/components/common/OutboundLink";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { EVENT_CATEGORY_LABEL, SITE_URL } from "@/lib/constants";
 import { buildMetadata, trimDescription, jsonLd } from "@/lib/seo";
@@ -328,14 +329,17 @@ export default async function EventPage({ params }: EventPageProps) {
                   <p className="text-sm text-brand-ink/60">
                     {isRTL ? "التذاكر متاحة عبر موقع المنظم" : "Tickets are sold on the organizer's site"}
                   </p>
-                  <a
+                  <OutboundLink
+                    kind="event_ticket"
+                    eventId={event.id}
+                    locale={locale}
                     href={event.ticket_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-brand-midnight text-white text-sm font-medium hover:bg-brand-midnight/90 transition-colors"
                   >
                     {t("venues.getTickets")} <ExternalLink size={14} />
-                  </a>
+                  </OutboundLink>
                   {event.source_url && (
                     <p className="text-[11px] text-brand-ink/40">
                       {t("venues.source")}:{" "}
