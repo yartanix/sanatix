@@ -51,7 +51,7 @@ export default async function HomePage() {
         <div className="relative">
           <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-brand-gold-light bg-brand-gold/10 border border-brand-gold/30 rounded-full px-4 py-2 mb-7">
             <Sparkles size={13} />
-            {isRTL ? "اكتشاف الفعاليات بذكاء" : "AI-powered event discovery"}
+            {isRTL ? "كل ما يلزم لحفلة طفلك" : "Everything for your child's party"}
           </span>
 
           <h1 className="max-w-3xl mx-auto text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.05] text-brand-warm-white">
@@ -105,7 +105,7 @@ export default async function HomePage() {
           <div className="flex items-end justify-between mb-7">
             <div>
               <p className="text-xs font-semibold tracking-wide text-[#8A5E12] uppercase mb-1.5">
-                {isRTL ? "مختارة لك" : "Curated for you"}
+                {isRTL ? "مثالية لاحتفالك القادم" : "Perfect for your next celebration"}
               </p>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-brand-midnight">{t("home.featuredEvents")}</h2>
             </div>

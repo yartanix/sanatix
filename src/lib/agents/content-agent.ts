@@ -116,7 +116,7 @@ function eventDiscoveryPrompt(city: SweepCity, count: number, knownTitles: strin
 
   return `Today is ${today}. You are researching REAL, publicly announced events happening in ${city.label} in the next 60 days.
 
-Use web search — official event websites, ticketing platforms (webook, Platinumlist, Ticketmaster, HalaYalla, Virgin Megastore Tickets, Eventbrite), venue calendars, the Saudi/GCC events calendars, exhibition organizers, sports federations, concert promoters, and reputable news. Find up to ${count} distinct events: concerts and shows, exhibitions and expos, conferences and summits, sports fixtures, festivals, family entertainment, community and cultural events, corporate/industry events.
+Use web search — kids' activity centers and indoor play venues, family entertainment websites, event planner and party vendor sites, ticketing platforms (webook, Platinumlist, Ticketmaster, HalaYalla, Virgin Megastore Tickets, Eventbrite), venue calendars, the Saudi/GCC events calendars, exhibition organizers, sports federations, concert promoters, and reputable news. Find up to ${count} distinct events, PRIORITIZING kids' birthday parties, children's entertainment (magic shows, kids' theater, workshops), and family-friendly festivals and fun days — then fill remaining slots with exhibitions and expos, sports fixtures, community and cultural events, concerts and shows, conferences and corporate/industry events.
 
 HARD RULES:
 - Only include events you found real evidence for in a search result. Never invent an event, a date, a venue, or a price. If a fact can't be verified, set it to null or leave the event out.
@@ -144,9 +144,9 @@ function venueDiscoveryPrompt(city: SweepCity, count: number, knownNames: string
     ? `\n\nPRIORITY: these venue names appear on events we list but we have no venue record yet — research these FIRST, then fill the remaining slots with other notable venues:\n${wanted.slice(0, 15).map((t) => `- ${t}`).join("\n")}`
     : "";
 
-  return `You are building a directory of REAL event venues in ${city.label}: hotel ballrooms, wedding and banquet halls, conference and exhibition centers, arenas and stadiums, theaters, cultural centers, outdoor event grounds, and restaurants/lounges with private event spaces.
+  return `You are building a directory of REAL event venues in ${city.label}, PRIORITIZING kids' indoor play centers, trampoline parks, kids' cafes, and venues that host children's birthday parties — then hotel ballrooms, wedding and banquet halls, conference and exhibition centers, arenas and stadiums, theaters, cultural centers, outdoor event grounds, and restaurants/lounges with private event spaces.
 
-Use web search — the venue's own website, Google Maps/Business listings, hotel group sites, tourism authority directories, and reputable wedding/event directories. Find up to ${count} distinct venues.${priority}${skip}
+Use web search — the venue's own website, Google Maps/Business listings, hotel group sites, tourism authority directories, family activity directories, and reputable wedding/event directories. Find up to ${count} distinct venues.${priority}${skip}
 
 HARD RULES:
 - Only include venues you found real evidence for. Never invent an address, phone number, capacity, or price. Unknown → null.
@@ -170,7 +170,7 @@ ${JSON_ONLY_TAIL}`;
 function vendorDiscoveryPrompt(cities: SweepCity[], count: number): string {
   return `You are researching REAL event-services businesses (vendors) currently operating in: ${cities.map((c) => c.label).join(", ")}.
 
-Use web search to find up to ${count} real, currently-operating businesses in categories like: ${VENDOR_CATEGORIES.join(", ")}. Only include businesses you found real evidence for (own website, Instagram, Google Business, or a directory listing). Never invent a business or its contact details.
+Use web search to find up to ${count} real, currently-operating businesses in categories like: ${VENDOR_CATEGORIES.join(", ")} — PRIORITIZING kids'-party specialists (entertainers, bounce house/inflatable rentals, cake and dessert makers) before filling remaining slots with the other categories. Only include businesses you found real evidence for (own website, Instagram, Google Business, or a directory listing). Never invent a business or its contact details.
 
 For each business, extract:
 - name_en, name_ar

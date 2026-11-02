@@ -8,6 +8,7 @@ import TicketSelector from "@/components/events/TicketSelector";
 import ReviewForm from "@/components/events/ReviewForm";
 import EventActions from "@/components/events/EventActions";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { EVENT_CATEGORY_LABEL } from "@/lib/constants";
 import type { Review } from "@/types";
 
 interface EventPageProps {
@@ -83,8 +84,10 @@ export default async function EventPage({ params }: EventPageProps) {
           </div>
         )}
         <div className="absolute bottom-4 start-4">
-          <span className="bg-brand-midnight/80 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm capitalize">
-            {event.category}
+          <span className="bg-brand-midnight/80 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
+            {EVENT_CATEGORY_LABEL[event.category]
+              ? (isRTL ? EVENT_CATEGORY_LABEL[event.category].ar : EVENT_CATEGORY_LABEL[event.category].en)
+              : event.category}
           </span>
         </div>
       </div>
