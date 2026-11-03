@@ -1,0 +1,59 @@
+version: 2
+
+# Weekly, grouped update PRs for both npm projects (web + mobile) and the
+# GitHub Actions versions this repo's own workflows pin. Grouped so this
+# doesn't turn into a dozen single-package PRs a week — one PR per
+# ecosystem per week, pre-tested by the existing CI (web-ci.yml,
+# mobile-ci.yml's typecheck job) before you ever look at it.
+#
+# This only opens PRs — nothing here auto-merges. Each one still goes
+# through the same review + the normal CI checks as any other PR.
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      web-dependencies:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+
+  - package-ecosystem: "npm"
+    directory: "/mobile"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      mobile-dependencies:
+        # Expo pins exact compatible versions per SDK release — bumping
+        # these one at a time outside an `expo upgrade` can break the
+        # native build in ways CI's typecheck/lint won't catch. Grouped
+        # together so you evaluate an Expo SDK bump as one deliberate
+        # decision, not a trickle of individual package PRs.
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "mobile"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "dependencies"
+      - "ci"
