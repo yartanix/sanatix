@@ -42,6 +42,12 @@ on:
         default: "preview"
         type: choice
         options: [development, preview, production]
+      platform:
+        description: "Which platform(s) to build — defaults to android only until the Apple Developer account is active and iOS credentials exist (see mobile/README.md); switch this back to 'all' once eas credentials has been run for iOS"
+        required: true
+        default: "android"
+        type: choice
+        options: [android, ios, all]
       submit:
         description: "Submit the resulting build to the store (internal track) after building"
         required: true
@@ -67,11 +73,17 @@ jobs:
       - run: npm run lint --if-present
 
   build:
-    name: EAS build (${{ github.event.inputs.profile || 'preview' }})
+    name: EAS build (${{ github.event.inputs.profile || 'preview' }}, ${{ github.event.inputs.platform || 'android' }})
     # Runs on push to main — always an "internal" preview build (installable
     # straight from an EAS link/QR code, no store account needed) — or on a
     # manual dispatch where you pick the profile yourself (including
     # "production", which is the only profile the submit job below accepts).
+    #
+    # Platform defaults to android only: iOS builds need a real Apple
+    # Developer account connected (eas credentials run once, interactively,
+    # after the account is active) before EAS can generate a distribution
+    # certificate non-interactively. Once that one-time setup is done,
+    # switch the "platform" input's default below back to "all".
     if: github.event_name != 'pull_request'
     needs: typecheck
     runs-on: ubuntu-latest
@@ -80,6 +92,7 @@ jobs:
         working-directory: mobile
     outputs:
       profile: ${{ steps.vars.outputs.profile }}
+      platform: ${{ steps.vars.outputs.platform }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -91,11 +104,13 @@ jobs:
       - name: Install eas-cli
         run: npm install -g eas-cli
       - id: vars
-        run: echo "profile=${{ github.event.inputs.profile || 'preview' }}" >> "$GITHUB_OUTPUT"
-      - name: EAS build (both platforms, non-interactive)
+        run: |
+          echo "profile=${{ github.event.inputs.profile || 'preview' }}" >> "$GITHUB_OUTPUT"
+          echo "platform=${{ github.event.inputs.platform || 'android' }}" >> "$GITHUB_OUTPUT"
+      - name: EAS build (non-interactive)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform all --profile "${{ steps.vars.outputs.profile }}" --non-interactive
+        run: eas build --platform "${{ steps.vars.outputs.platform }}" --profile "${{ steps.vars.outputs.profile }}" --non-interactive
 
   submit:
     name: Submit to store (TestFlight / Play internal testing)
@@ -132,10 +147,12 @@ jobs:
           sed -i "s/REPLACE_WITH_YOUR_ASC_ISSUER_ID/${{ secrets.ASC_API_KEY_ISSUER_ID }}/" eas.json
           sed -i "s/REPLACE_WITH_YOUR_ASC_KEY_ID/${{ secrets.ASC_API_KEY_ID }}/" eas.json
       - name: Submit latest build — iOS (TestFlight internal)
+        if: needs.build.outputs.platform == 'ios' || needs.build.outputs.platform == 'all'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas submit --platform ios --profile production --non-interactive --latest
       - name: Submit latest build — Android (Play internal testing)
+        if: needs.build.outputs.platform == 'android' || needs.build.outputs.platform == 'all'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas submit --platform android --profile production --non-interactive --latest
