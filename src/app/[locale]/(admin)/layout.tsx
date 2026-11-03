@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import {
-  LayoutDashboard, Store, ShieldCheck, LogOut, Zap,
+  LayoutDashboard, Store, ShieldCheck, TrendingUp, LogOut, Zap,
 } from "lucide-react";
 
 const nav = [
-  { href: "/admin",         label_ar: "نظرة عامة",       label_en: "Overview",       Icon: LayoutDashboard },
-  { href: "/admin/vendors", label_ar: "مراجعة الموردين",  label_en: "Vendor Review",  Icon: Store           },
-  { href: "/admin/content", label_ar: "محتوى الوكيل",     label_en: "Agent Content",  Icon: ShieldCheck     },
+  { href: "/admin",           label_ar: "نظرة عامة",       label_en: "Overview",       Icon: LayoutDashboard },
+  { href: "/admin/vendors",   label_ar: "مراجعة الموردين",  label_en: "Vendor Review",  Icon: Store           },
+  { href: "/admin/content",   label_ar: "محتوى الوكيل",     label_en: "Agent Content",  Icon: ShieldCheck     },
+  { href: "/admin/referrals", label_ar: "تحليلات الإحالة",   label_en: "Referral Analytics", Icon: TrendingUp },
 ];
 
 type NavItem = { href: string; label_ar: string; label_en: string; Icon: React.ElementType };

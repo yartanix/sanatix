@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import { Store, CalendarDays, Building2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Store, CalendarDays, Building2, TrendingUp, ArrowRight, ArrowLeft } from "lucide-react";
 
 export const metadata = { title: "Admin - Sanatix" };
 
@@ -11,10 +11,12 @@ export default async function AdminOverviewPage() {
   const isRTL = locale === "ar";
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
 
-  const [{ count: pendingVendors }, { count: agentEvents }, { count: agentVenues }] = await Promise.all([
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const [{ count: pendingVendors }, { count: agentEvents }, { count: agentVenues }, { count: outboundClicks }] = await Promise.all([
     supabase.from("vendors").select("id", { count: "exact", head: true }).eq("is_verified", false),
     supabase.from("events").select("id", { count: "exact", head: true }).eq("agent_generated", true).eq("status", "published"),
     supabase.from("venues").select("id", { count: "exact", head: true }).eq("agent_generated", true).eq("is_published", true),
+    supabase.from("outbound_clicks").select("id", { count: "exact", head: true }).gte("created_at", thirtyDaysAgo),
   ]);
 
   const cards = [
@@ -39,6 +41,13 @@ export default async function AdminOverviewPage() {
       Icon: Building2,
       accent: "text-brand-ink/40",
     },
+    {
+      href: "/admin/referrals",
+      label: isRTL ? "نقرات التذاكر الخارجية (٣٠ يوم)" : "Outbound ticket clicks (30d)",
+      value: outboundClicks ?? 0,
+      Icon: TrendingUp,
+      accent: "text-emerald-500",
+    },
   ];
 
   return (
@@ -54,7 +63,7 @@ export default async function AdminOverviewPage() {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card) => (
           <Link
             key={card.label}
