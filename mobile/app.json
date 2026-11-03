@@ -11,7 +11,9 @@
     "splash": {
       "backgroundColor": "#0F0F14"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "net.sanatix.app",
@@ -24,7 +26,10 @@
       "adaptiveIcon": {
         "backgroundColor": "#0F0F14"
       },
-      "permissions": ["android.permission.READ_CONTACTS"]
+      "permissions": [
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -38,6 +43,9 @@
     "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "a722fefa-cc08-465d-a364-6c06fb0767a5"
       }
     }
   }
