@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Search, CalendarDays, MapPin, Sparkles, ArrowRight } from "lucide-react";
 import { Link } from "@/i18n/routing";
@@ -5,8 +6,24 @@ import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/layout/Navbar";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { EVENT_CATEGORIES, EVENT_CATEGORY_LABEL } from "@/lib/constants";
+import { buildMetadata } from "@/lib/seo";
 
 const QUICK_CATEGORIES = EVENT_CATEGORIES.slice(0, 4);
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const isRTL = locale === "ar";
+  return buildMetadata({
+    path: "/",
+    locale,
+    title: isRTL
+      ? "سناتيكس — حفلات أطفال، فعاليات وتذاكر في الخليج"
+      : "Sanatix — Kids' Party Planning, Events & Tickets Across the GCC",
+    description: isRTL
+      ? "خطط لحفلة طفلك مع أفضل قاعات الحفلات والمرفهين وصانعي الكيك، أو احجز تذاكر الفعاليات والمؤتمرات في السعودية والإمارات وبقية الخليج."
+      : "Plan your child's perfect party with top party venues, entertainers, and cake makers — or book tickets to concerts, conferences, and events across Saudi Arabia, the UAE, and the GCC.",
+  });
+}
 
 export default async function HomePage() {
   const locale = await getLocale();

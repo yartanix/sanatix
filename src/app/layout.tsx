@@ -1,18 +1,27 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getLocale } from "next-intl/server";
+import { SITE_URL } from "@/lib/constants";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "Sanatix — Light up your moments",
-  description: "The GCC's event marketplace. Discover events, book tickets, and find event vendors.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Sanatix — Kids' Party Planning & Events Across the GCC",
+    template: "%s",
+  },
+  description: "Plan your child's party with trusted venues and vendors, or book tickets to events across the GCC.",
   icons: {
     icon: "/icons/favicon.ico",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
   openGraph: {
     title: "Sanatix",
     description: "Light up your moments — أضئ لحظاتك",
-    url: "https://sanatix.net",
+    url: SITE_URL,
     siteName: "Sanatix",
     locale: "ar_SA",
     alternateLocale: "en_US",

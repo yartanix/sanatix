@@ -1,3 +1,7 @@
+// Canonical site origin — used for metadata, sitemap, canonical/hreflang
+// tags, and JSON-LD. Keep in sync with the production domain.
+export const SITE_URL = "https://sanatix.net";
+
 // Shared taxonomy used by both the organizer event form and the public
 // events listing/filtering, so filter chips always match real event data.
 // Kids' parties and family events lead this list on purpose — they're the

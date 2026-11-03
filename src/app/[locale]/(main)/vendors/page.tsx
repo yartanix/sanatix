@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
@@ -5,10 +6,31 @@ import { Search } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import VendorCard from "@/components/vendors/VendorCard";
 import { VENDOR_CATEGORIES, VENDOR_CATEGORY_LABEL } from "@/lib/constants";
+import { buildMetadata } from "@/lib/seo";
 import type { Vendor } from "@/types";
 
 interface PageProps {
   searchParams: Promise<{ category?: string; city?: string; q?: string }>;
+}
+
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const { category, city } = await searchParams;
+  const locale = await getLocale();
+  const isRTL = locale === "ar";
+  const categoryLabel = category ? VENDOR_CATEGORY_LABEL[category]?.[isRTL ? "ar" : "en"] : null;
+
+  const title = [categoryLabel, city, isRTL ? "موردو الحفلات" : "Party Vendors"]
+    .filter(Boolean)
+    .join(isRTL ? " في " : " in ");
+
+  return buildMetadata({
+    path: "/vendors",
+    locale,
+    title: `${title} | Sanatix`,
+    description: isRTL
+      ? "تصفح مرفهي الأطفال، صانعي الكيك، شركات التصوير والديكور والتموين الموثوقين في الخليج، وتواصل معهم مباشرة."
+      : "Browse verified kids' entertainers, cake makers, photographers, decorators, and caterers across the GCC, and contact them directly.",
+  });
 }
 
 export default async function VendorsPage({ searchParams }: PageProps) {
