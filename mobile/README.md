@@ -112,15 +112,26 @@ wired up. What it does:
 
 - **Any pull request touching `mobile/`** — runs `tsc --noEmit` and eslint.
   Nothing builds, nothing needs secrets. This alone is free to turn on today.
-- **Every push to `main` touching `mobile/`** — builds a "preview" build for
-  both platforms via EAS: an installable app distributed through an EAS
-  link/QR code, no App Store/Play account involved at all. This only needs
-  an Expo account.
-- **Manually, from the Actions tab** ("Run workflow" → pick `production` →
-  tick "submit") — builds a store-ready build and uploads it to TestFlight
-  (internal) and the Play Console's internal testing track. This is the one
-  step that's never automatic, by design — a bad commit can't silently reach
-  App Store Review or Play without you choosing to send it there.
+- **Every push to `main` touching `mobile/`** — builds a "preview" build via
+  EAS: an installable app distributed through an EAS link/QR code, no App
+  Store/Play account involved at all. This only needs an Expo account.
+- **Manually, from the Actions tab** ("Run workflow" → pick a profile and
+  platform → tick "submit" if ready) — builds a store-ready build and
+  uploads it to TestFlight (internal) and/or the Play Console's internal
+  testing track. Submitting is the one step that's never automatic by
+  default — a bad commit can't silently reach App Store Review or Play
+  without you choosing to send it there.
+
+**Platform note:** the workflow's `platform` input defaults to **`android`
+only**, not `all`. iOS builds need a real Apple Developer account connected
+before EAS can generate a distribution certificate non-interactively — until
+that's set up, an iOS build attempt in CI fails with "EAS CLI couldn't find
+any credentials suitable for internal distribution." Once your Apple
+Developer account is active, run `eas credentials` once locally (interactive
+— it'll walk you through generating/uploading the certificate), then you can
+pick `platform: all` or `platform: ios` on future manual runs, and flip the
+workflow's default back to `all` if you want every push building both
+platforms again.
 
 ### One-time setup to turn this on
 
