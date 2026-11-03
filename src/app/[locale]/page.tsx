@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Search, CalendarDays, MapPin, Sparkles, ArrowRight } from "lucide-react";
+import { Search, CalendarDays, MapPin, Sparkles, ArrowRight, PartyPopper } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/layout/Navbar";
@@ -78,8 +78,28 @@ export default async function HomePage() {
             {t("home.heroSub")}
           </p>
 
-          {/* Search */}
-          <form action="/events" method="GET" className="relative max-w-xl mx-auto mt-11">
+          {/* Primary CTA — the Plan a Party wizard. This is the main entry
+              point into the product now, so it leads, full-size, right
+              under the hero copy, ahead of the ticket search below. */}
+          <Link
+            href="/plan-a-party"
+            className="relative mt-9 inline-flex items-center gap-3 rounded-full px-8 sm:px-10 py-4 sm:py-5 bg-gradient-to-br from-brand-gold-light to-brand-gold text-brand-midnight font-bold text-base sm:text-lg shadow-[0_18px_44px_-14px_rgba(200,151,58,0.55)] hover:opacity-90 transition-opacity"
+          >
+            <PartyPopper size={20} />
+            {isRTL ? "خطط لحفلتك الآن" : "Plan Your Party"}
+            <ArrowRight size={18} className={isRTL ? "rotate-180" : ""} />
+          </Link>
+          <p className="mt-3 text-xs text-brand-warm-white/45">
+            {isRTL
+              ? "أجب عن بضعة أسئلة ونرشح لك الأفضل — في أقل من دقيقة"
+              : "A few quick questions, real matches in under a minute"}
+          </p>
+
+          {/* Secondary — browse/search events & tickets directly */}
+          <p className="mt-8 text-xs font-semibold tracking-wide text-brand-warm-white/35 uppercase">
+            {isRTL ? "أو تصفح الفعاليات والتذاكر" : "Or browse events & tickets"}
+          </p>
+          <form action="/events" method="GET" className="relative max-w-xl mx-auto mt-3">
             <div className="absolute -inset-3.5 rounded-full bg-gradient-to-br from-brand-gold-light/35 to-brand-gold/15 blur-2xl opacity-80 -z-10" />
             <div className="flex items-center gap-3 rounded-full border border-white/[0.18] bg-white/[0.08] backdrop-blur-xl py-2 ps-6 pe-2">
               <Search size={18} className="text-brand-gold-light shrink-0" />
