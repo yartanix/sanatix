@@ -58,10 +58,45 @@ address book.
 
 ## What this app needs from the database
 
-Nothing extra beyond migration `011_party_invitations_rsvp.sql`, which you
-already applied for the web feature. The app talks to Supabase directly
-(same RLS policies — `host_id = auth.uid()` — as the web app), so there is
-no separate backend to deploy for the app itself.
+Migration `011_party_invitations_rsvp.sql` (web feature) plus migration
+`012_push_notifications.sql` (adds the `push_tokens` table — see "Push
+notifications" below). The app talks to Supabase directly (same RLS
+policies — `host_id = auth.uid()` — as the web app), so there is no
+separate backend to deploy for the app itself.
+
+## Push notifications
+
+A host gets a push notification on their phone the moment a guest RSVPs —
+"Sara is coming to Noor's Birthday", etc. No setup needed beyond applying
+migration `012` and building the app once (push requires a real build;
+Expo Go can register a token but can't receive real pushes).
+
+How it works:
+
+- On login, `src/lib/auth-context.tsx` calls
+  `registerForPushNotifications()` (`src/lib/push.ts`), which asks for
+  notification permission once, gets the device's Expo push token, and
+  upserts it into the `push_tokens` table (keyed to that user).
+- When a guest submits an RSVP on the web RSVP page, the web app's
+  `/api/rsvp/[token]` route looks up the party's host and their registered
+  push token(s), then sends the notification through Expo's push service
+  directly (`src/lib/push/send-expo-push.ts` in the web repo — no extra
+  account or API key needed; Expo's push service is free and keyless for
+  sending).
+- Nothing here needs `EXPO_TOKEN`, EAS, or any new secret — push tokens
+  are just rows in your existing Supabase database, and Expo's push send
+  endpoint is a plain public HTTPS endpoint.
+
+**A user has to actually grant notification permission** (the OS prompt,
+shown once) for this to work — if they decline, the app just never
+registers a token and nothing breaks; the host simply won't get that
+particular notification until they re-enable it in their phone's Settings
+and reopen the app.
+
+To test: build and install the app on a real device (not Expo Go), log
+in, grant the notification permission when asked, then have anyone submit
+an RSVP through that host's party's RSVP link on sanatix.net. The
+notification should arrive within a few seconds.
 
 ## Getting it onto an actual phone (App Store / Play Store)
 
