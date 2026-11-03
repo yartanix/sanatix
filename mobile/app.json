@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Sanatix",
+    "slug": "sanatix",
+    "scheme": "sanatix",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0F0F14"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "net.sanatix.app",
+      "infoPlist": {
+        "NSContactsUsageDescription": "Sanatix uses your contacts so you can pick who to invite to a party. Nothing is uploaded except the names and numbers of people you choose to invite."
+      }
+    },
+    "android": {
+      "package": "net.sanatix.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F0F14"
+      },
+      "permissions": ["android.permission.READ_CONTACTS"]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Sanatix to access your contacts so you can pick who to invite to a party."
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}
