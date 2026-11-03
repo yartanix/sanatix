@@ -6,6 +6,13 @@ import { useRouter } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 import { Minus, Plus, Ticket, Lock } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import {
+  getAvailableTickets,
+  clampQuantity,
+  calculateTotalItems,
+  calculateBookingTotal,
+  buildBookingItems,
+} from "@/lib/booking/pricing";
 
 interface TicketType {
   id: string;
@@ -37,18 +44,17 @@ export default function TicketSelector({ eventId, ticketTypes, isFree, locale }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const availableTickets = ticketTypes.filter(tt => tt.status === "available" && tt.sold_quantity < tt.total_quantity);
+  const availableTickets = getAvailableTickets(ticketTypes);
 
   function updateQuantity(ticketId: string, delta: number) {
     setQuantities(prev => {
       const current = prev[ticketId] ?? 0;
-      const newVal = Math.max(0, Math.min(10, current + delta));
-      return { ...prev, [ticketId]: newVal };
+      return { ...prev, [ticketId]: clampQuantity(current, delta) };
     });
   }
 
-  const totalItems = Object.values(quantities).reduce((a, b) => a + b, 0);
-  const totalAmount = availableTickets.reduce((sum, tt) => sum + (quantities[tt.id] ?? 0) * tt.price, 0);
+  const totalItems = calculateTotalItems(quantities);
+  const totalAmount = calculateBookingTotal(availableTickets, quantities);
   const currency = availableTickets[0]?.currency ?? "SAR";
 
   async function handleBooking() {
@@ -58,9 +64,7 @@ export default function TicketSelector({ eventId, ticketTypes, isFree, locale }:
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
 
-    const items = Object.entries(quantities)
-      .filter(([, quantity]) => quantity > 0)
-      .map(([ticket_type_id, quantity]) => ({ ticket_type_id, quantity }));
+    const items = buildBookingItems(quantities);
 
     // Booking is created server-side via /api/bookings, which locks the
     // ticket_type row and checks remaining stock atomically — this avoids

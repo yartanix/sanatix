@@ -2,18 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendExpoPushNotifications } from "@/lib/push/send-expo-push";
 import { NextRequest, NextResponse, after } from "next/server";
-import { z } from "zod";
+import { rsvpTokenSchema, rsvpSubmitSchema } from "@/lib/validation/schemas";
 import type { RsvpDetails } from "@/types";
 
 interface Params {
   params: Promise<{ token: string }>;
 }
-
-const tokenSchema = z.string().uuid();
-const rsvpBodySchema = z.object({
-  status: z.enum(["yes", "no", "maybe"]),
-  guestCount: z.number().int().min(1).max(20).optional(),
-});
 
 // No auth on this route at all, by design — the token in the URL *is*
 // the credential, same as any calendar/wedding RSVP link. Both reads and
@@ -23,7 +17,7 @@ const rsvpBodySchema = z.object({
 // so a guest can never see or edit anyone else's RSVP.
 export async function GET(_req: NextRequest, { params }: Params) {
   const { token } = await params;
-  if (!tokenSchema.safeParse(token).success) {
+  if (!rsvpTokenSchema.safeParse(token).success) {
     return NextResponse.json({ error: "Invalid link" }, { status: 400 });
   }
 
@@ -38,12 +32,12 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 export async function POST(req: NextRequest, { params }: Params) {
   const { token } = await params;
-  if (!tokenSchema.safeParse(token).success) {
+  if (!rsvpTokenSchema.safeParse(token).success) {
     return NextResponse.json({ error: "Invalid link" }, { status: 400 });
   }
 
   const json = await req.json().catch(() => null);
-  const parsed = rsvpBodySchema.safeParse(json);
+  const parsed = rsvpSubmitSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid request" },

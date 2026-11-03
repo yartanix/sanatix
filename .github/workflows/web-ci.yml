@@ -1,0 +1,37 @@
+name: Web CI
+
+# First automated check for the Next.js web app (sanatix.net). Until now,
+# the only thing that caught a broken deploy was Vercel's own build step —
+# which catches a build failure, but not a regression in logic that still
+# compiles fine, like a booking total calculation or an RSVP validation
+# rule quietly changing behavior. This adds a fast, free (no secrets
+# needed) check on every PR: typecheck + the unit test suite under
+# src/**/*.test.ts (see vitest.config.ts).
+#
+# Scoped to money-adjacent logic for now — ticket pricing math
+# (src/lib/booking/pricing.ts) and the RSVP/booking request validation
+# boundaries (src/lib/validation/schemas.ts) — not a full test pyramid.
+# Growing this coverage over time, not a one-off.
+
+on:
+  pull_request:
+    paths-ignore:
+      - "mobile/**"
+  push:
+    branches: [main]
+    paths-ignore:
+      - "mobile/**"
+
+jobs:
+  test:
+    name: Typecheck & unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm test
