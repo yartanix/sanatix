@@ -2,8 +2,11 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/lib/auth-context";
 import { Sentry } from "@/lib/sentry";
+import { useOTAUpdates } from "@/lib/updates";
 
 function RootLayout() {
+  useOTAUpdates();
+
   return (
     <AuthProvider>
       <StatusBar style="light" />

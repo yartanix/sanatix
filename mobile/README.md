@@ -105,6 +105,42 @@ Until step 3 is run, the app only runs inside Expo Go — which is genuinely
 fine for using it yourself or testing with a few people (just share the
 `npx expo start` QR code), just not for public distribution.
 
+## Over-the-air updates (EAS Update)
+
+Every real build (preview or production, from CI or run by hand) now
+checks for an update the moment it launches, and applies it immediately if
+one is found — see `src/lib/updates.ts`. This means a JS/asset-only fix
+(a copy change, a bug in a screen, a tweak to styling) can go out to every
+installed copy of the app **without a new App Store / Play Store
+submission and without the user doing anything** — it lands the next time
+they open the app, same day you ship it, no review wait.
+
+**This only works for JS and asset changes.** It cannot update anything
+native — a new native module (like this patch's own `expo-updates`
+install), a changed Info.plist/AndroidManifest permission, a bumped Expo
+SDK. Shipping one of those always requires a real new build through the
+normal `eas build` / store submission path above. Mixing the two up (OTA
+to a build that doesn't have the native code the JS now expects) is the
+single most common way teams break production with this feature — when in
+doubt, do a normal build instead.
+
+Each build profile in `eas.json` maps to its own **channel**
+(`preview`, `production`, `development`) and an OTA update only reaches
+builds on the channel it was published to — a `preview` update never
+reaches someone running a `production` build, by design.
+
+**To publish an update:** Actions tab → "Mobile CI/CD" → "Run workflow" →
+tick **"publish OTA update instead"** → pick the `profile` matching which
+channel should receive it (this reuses the same dropdown build normally
+uses) → Run workflow. It typically finishes in under a minute and users on
+that channel get the fix on their next app open.
+
+You can also do it from your own machine, without touching GitHub Actions:
+```bash
+cd mobile
+eas update --channel preview --message "fix: typo in party confirmation screen"
+```
+
 ## CI/CD (GitHub Actions + EAS)
 
 `.github/workflows/mobile-ci.yml` (repo root) automates the above once it's

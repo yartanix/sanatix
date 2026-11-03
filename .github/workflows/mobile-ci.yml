@@ -14,6 +14,12 @@ name: Mobile CI/CD
 #   Actions tab, choose profile "production", and tick "submit". It's never
 #   automatic on a push, so a bad commit can't silently reach App Store
 #   Review or Play without you choosing to send it there.
+# - Pushing a JS/asset-only fix (no new native code, no new native
+#   dependency) doesn't need a whole new build at all: tick "publish OTA
+#   update instead" on a manual run and it ships straight to everyone
+#   already running that channel's build via EAS Update — usually live
+#   within seconds, no store review involved. See mobile/README.md for when
+#   this is and isn't safe to use.
 #
 # Required GitHub secrets (Settings → Secrets and variables → Actions):
 #   EXPO_TOKEN                 – from https://expo.dev/accounts/[you]/settings/access-tokens
@@ -22,9 +28,9 @@ name: Mobile CI/CD
 #   ASC_API_KEY_ID             – App Store Connect API key ID
 #   GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 – Play Console service account JSON key, base64-encoded
 #
-# None of these are needed just to get CI typechecking PRs — only the build
-# and submit jobs use them, and those only run once EAS/the store accounts
-# are wired up (see mobile/README.md).
+# None of these are needed just to get CI typechecking PRs — only the build,
+# update and submit jobs use them, and those only run once EAS/the store
+# accounts are wired up (see mobile/README.md).
 
 on:
   pull_request:
@@ -37,7 +43,7 @@ on:
   workflow_dispatch:
     inputs:
       profile:
-        description: "EAS build profile to run"
+        description: "EAS build profile to run (ignored if 'publish OTA update instead' is ticked)"
         required: true
         default: "preview"
         type: choice
@@ -50,6 +56,11 @@ on:
         options: [android, ios, all]
       submit:
         description: "Submit the resulting build to the store (internal track) after building"
+        required: true
+        default: false
+        type: boolean
+      publishUpdate:
+        description: "Publish an OTA update instead of building — only for JS/asset-only changes, never after adding a native module or bumping app.json's native config"
         required: true
         default: false
         type: boolean
@@ -84,7 +95,11 @@ jobs:
     # after the account is active) before EAS can generate a distribution
     # certificate non-interactively. Once that one-time setup is done,
     # switch the "platform" input's default below back to "all".
-    if: github.event_name != 'pull_request'
+    #
+    # Skipped on a manual dispatch with "publish OTA update instead" ticked
+    # — that path publishes an update to the existing build, it doesn't
+    # need a new one.
+    if: github.event_name != 'pull_request' && github.event.inputs.publishUpdate != 'true'
     needs: typecheck
     runs-on: ubuntu-latest
     defaults:
@@ -111,6 +126,38 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas build --platform "${{ steps.vars.outputs.platform }}" --profile "${{ steps.vars.outputs.profile }}" --non-interactive
+
+  update:
+    name: Publish OTA update (${{ github.event.inputs.profile || 'preview' }})
+    # Only runs on a manual dispatch with "publish OTA update instead"
+    # ticked. Publishes straight to the channel matching the chosen
+    # profile (preview/production/development — see mobile/eas.json) so
+    # every already-installed build on that channel picks it up on next
+    # launch, typically within seconds. No store review, no new binary.
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.publishUpdate == 'true'
+    needs: typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - name: Install eas-cli
+        run: npm install -g eas-cli
+      - name: Publish update
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas update \
+            --channel "${{ github.event.inputs.profile || 'preview' }}" \
+            --message "${{ github.event.head_commit.message || github.sha }}" \
+            --non-interactive
 
   submit:
     name: Submit to store (TestFlight / Play internal testing)

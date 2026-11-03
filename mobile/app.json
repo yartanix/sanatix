@@ -14,6 +14,12 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a722fefa-cc08-465d-a364-6c06fb0767a5"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "net.sanatix.app",
@@ -33,6 +39,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-updates",
       [
         "expo-contacts",
         {
