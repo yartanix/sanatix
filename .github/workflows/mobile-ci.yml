@@ -88,13 +88,13 @@ jobs:
           cache: npm
           cache-dependency-path: mobile/package-lock.json
       - run: npm ci
-      - uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install eas-cli
+        run: npm install -g eas-cli
       - id: vars
         run: echo "profile=${{ github.event.inputs.profile || 'preview' }}" >> "$GITHUB_OUTPUT"
       - name: EAS build (both platforms, non-interactive)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas build --platform all --profile "${{ steps.vars.outputs.profile }}" --non-interactive
 
   submit:
@@ -121,10 +121,8 @@ jobs:
           cache: npm
           cache-dependency-path: mobile/package-lock.json
       - run: npm ci
-      - uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install eas-cli
+        run: npm install -g eas-cli
       - name: Write iOS App Store Connect API key
         run: echo "${{ secrets.ASC_API_KEY_P8_BASE64 }}" | base64 -d > asc-api-key.p8
       - name: Write Google Play service account key
@@ -134,8 +132,12 @@ jobs:
           sed -i "s/REPLACE_WITH_YOUR_ASC_ISSUER_ID/${{ secrets.ASC_API_KEY_ISSUER_ID }}/" eas.json
           sed -i "s/REPLACE_WITH_YOUR_ASC_KEY_ID/${{ secrets.ASC_API_KEY_ID }}/" eas.json
       - name: Submit latest build — iOS (TestFlight internal)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas submit --platform ios --profile production --non-interactive --latest
       - name: Submit latest build — Android (Play internal testing)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas submit --platform android --profile production --non-interactive --latest
       - name: Clean up credential files
         if: always()
