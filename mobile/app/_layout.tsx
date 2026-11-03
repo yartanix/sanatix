@@ -1,8 +1,9 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/lib/auth-context";
+import { Sentry } from "@/lib/sentry";
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <AuthProvider>
       <StatusBar style="light" />
@@ -17,3 +18,8 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
+
+// Sentry.wrap adds a top-level error boundary plus app-start/navigation
+// performance tracing. It's a harmless passthrough when no DSN is set
+// (src/lib/sentry.ts never calls Sentry.init in that case).
+export default Sentry.wrap(RootLayout);

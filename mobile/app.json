@@ -38,6 +38,13 @@
         {
           "contactsPermission": "Allow Sanatix to access your contacts so you can pick who to invite to a party."
         }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "REPLACE_WITH_YOUR_SENTRY_ORG_SLUG",
+          "project": "REPLACE_WITH_YOUR_SENTRY_PROJECT_SLUG"
+        }
       ]
     ],
     "extra": {
