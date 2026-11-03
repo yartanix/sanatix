@@ -7,6 +7,7 @@ web-build/
 *.p12
 *.key
 *.mobileprovision
+google-service-account.json
 .env
 .env.local
 npm-debug.*

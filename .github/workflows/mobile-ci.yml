@@ -1,0 +1,142 @@
+name: Mobile CI/CD
+
+# Builds and (on main) ships the Sanatix Mobile app via Expo EAS.
+#
+# - Any PR touching mobile/ gets a fast typecheck/lint pass so broken code
+#   never reaches a build.
+# - A push to main that touches mobile/ triggers a real EAS build using the
+#   "preview" profile — an installable build distributed via an EAS link/QR
+#   code, with no store account or review involved at all. That's the
+#   default "build on every push" behavior, and it needs only an Expo
+#   account (EXPO_TOKEN) — nothing from Apple or Google.
+# - Submitting a build to TestFlight / Play's internal testing track is a
+#   separate, deliberate action: trigger this workflow manually from the
+#   Actions tab, choose profile "production", and tick "submit". It's never
+#   automatic on a push, so a bad commit can't silently reach App Store
+#   Review or Play without you choosing to send it there.
+#
+# Required GitHub secrets (Settings → Secrets and variables → Actions):
+#   EXPO_TOKEN                 – from https://expo.dev/accounts/[you]/settings/access-tokens
+#   ASC_API_KEY_P8_BASE64      – your App Store Connect API key (.p8 file), base64-encoded
+#   ASC_API_KEY_ISSUER_ID      – App Store Connect API key issuer ID
+#   ASC_API_KEY_ID             – App Store Connect API key ID
+#   GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 – Play Console service account JSON key, base64-encoded
+#
+# None of these are needed just to get CI typechecking PRs — only the build
+# and submit jobs use them, and those only run once EAS/the store accounts
+# are wired up (see mobile/README.md).
+
+on:
+  pull_request:
+    paths:
+      - "mobile/**"
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile to run"
+        required: true
+        default: "preview"
+        type: choice
+        options: [development, preview, production]
+      submit:
+        description: "Submit the resulting build to the store (internal track) after building"
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  typecheck:
+    name: Typecheck & lint (mobile)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint --if-present
+
+  build:
+    name: EAS build (${{ github.event.inputs.profile || 'preview' }})
+    # Runs on push to main — always an "internal" preview build (installable
+    # straight from an EAS link/QR code, no store account needed) — or on a
+    # manual dispatch where you pick the profile yourself (including
+    # "production", which is the only profile the submit job below accepts).
+    if: github.event_name != 'pull_request'
+    needs: typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    outputs:
+      profile: ${{ steps.vars.outputs.profile }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - id: vars
+        run: echo "profile=${{ github.event.inputs.profile || 'preview' }}" >> "$GITHUB_OUTPUT"
+      - name: EAS build (both platforms, non-interactive)
+        run: eas build --platform all --profile "${{ steps.vars.outputs.profile }}" --non-interactive
+
+  submit:
+    name: Submit to store (TestFlight / Play internal testing)
+    # Deliberately never runs on a plain push to main — only when you
+    # manually trigger this workflow with profile=production and tick
+    # "submit". That's the one deliberate step that puts a build in front
+    # of App Store Review / Play, instead of every push doing it silently.
+    if: |
+      needs.build.result == 'success' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.submit == 'true' &&
+      needs.build.outputs.profile == 'production'
+    needs: build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Write iOS App Store Connect API key
+        run: echo "${{ secrets.ASC_API_KEY_P8_BASE64 }}" | base64 -d > asc-api-key.p8
+      - name: Write Google Play service account key
+        run: echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}" | base64 -d > google-service-account.json
+      - name: Fill in App Store Connect identifiers
+        run: |
+          sed -i "s/REPLACE_WITH_YOUR_ASC_ISSUER_ID/${{ secrets.ASC_API_KEY_ISSUER_ID }}/" eas.json
+          sed -i "s/REPLACE_WITH_YOUR_ASC_KEY_ID/${{ secrets.ASC_API_KEY_ID }}/" eas.json
+      - name: Submit latest build — iOS (TestFlight internal)
+        run: eas submit --platform ios --profile production --non-interactive --latest
+      - name: Submit latest build — Android (Play internal testing)
+        run: eas submit --platform android --profile production --non-interactive --latest
+      - name: Clean up credential files
+        if: always()
+        run: rm -f asc-api-key.p8 google-service-account.json

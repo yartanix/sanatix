@@ -104,3 +104,75 @@ it requires accounts only you can create and pay for:
 Until step 3 is run, the app only runs inside Expo Go — which is genuinely
 fine for using it yourself or testing with a few people (just share the
 `npx expo start` QR code), just not for public distribution.
+
+## CI/CD (GitHub Actions + EAS)
+
+`.github/workflows/mobile-ci.yml` (repo root) automates the above once it's
+wired up. What it does:
+
+- **Any pull request touching `mobile/`** — runs `tsc --noEmit` and eslint.
+  Nothing builds, nothing needs secrets. This alone is free to turn on today.
+- **Every push to `main` touching `mobile/`** — builds a "preview" build for
+  both platforms via EAS: an installable app distributed through an EAS
+  link/QR code, no App Store/Play account involved at all. This only needs
+  an Expo account.
+- **Manually, from the Actions tab** ("Run workflow" → pick `production` →
+  tick "submit") — builds a store-ready build and uploads it to TestFlight
+  (internal) and the Play Console's internal testing track. This is the one
+  step that's never automatic, by design — a bad commit can't silently reach
+  App Store Review or Play without you choosing to send it there.
+
+### One-time setup to turn this on
+
+1. **Create an Expo account** at [expo.dev](https://expo.dev) (free) if you
+   don't have one, then from `mobile/`:
+   ```bash
+   npm install -g eas-cli
+   eas login
+   eas build:configure
+   ```
+   This writes an EAS project ID into `app.json` automatically — commit that
+   change.
+
+2. **Get an Expo access token** for CI: expo.dev → your account → Settings →
+   [Access Tokens](https://expo.dev/accounts/\[your-account\]/settings/access-tokens)
+   → create one. Add it to the GitHub repo as a secret named `EXPO_TOKEN`
+   (repo → Settings → Secrets and variables → Actions → New repository
+   secret).
+
+   With just this secret, the "push to main → preview build" half of the
+   pipeline already works — nothing below is needed until you're ready to
+   submit to the stores.
+
+3. **For store submission** (once your Apple/Google developer accounts are
+   active), three more secrets:
+
+   - **`ASC_API_KEY_P8_BASE64`** — an App Store Connect API key. In
+     [App Store Connect](https://appstoreconnect.apple.com) → Users and
+     Access → Integrations → App Store Connect API → generate a key with
+     "App Manager" access, download the `.p8` file (Apple only lets you
+     download it once), then: `base64 -i AuthKey_XXXX.p8 | pbcopy` (Mac) or
+     `certutil -encode AuthKey_XXXX.p8 tmp.b64` (Windows) — paste the result
+     as the secret value.
+   - **`ASC_API_KEY_ISSUER_ID`** and **`ASC_API_KEY_ID`** — shown right next
+     to the key you just created in App Store Connect.
+   - **`GOOGLE_SERVICE_ACCOUNT_JSON_BASE64`** — in Play Console → Setup → API
+     access, create a service account with "Release manager" permission,
+     download its JSON key, then base64-encode it the same way as above.
+
+   You'll also need to have created the app's listing once in both App Store
+   Connect and Play Console by hand (bundle ID `net.sanatix.app` / package
+   `net.sanatix.app`) — EAS submits *to* an existing app record, it doesn't
+   create the store listing itself.
+
+### Running it
+
+- Push anything under `mobile/` to `main` → check the Actions tab for the
+  "Mobile CI/CD" run → once it finishes, the build's EAS link is in the job
+  log (or at [expo.dev](https://expo.dev) under your project's Builds tab).
+- When you're ready to put a build in front of testers in TestFlight/Play:
+  Actions tab → "Mobile CI/CD" → "Run workflow" → profile `production`,
+  submit `true`.
+- Promoting that build from internal testing to the actual public release is
+  a decision you make in App Store Connect / Play Console directly — this
+  pipeline deliberately stops at internal testing, not public release.
