@@ -106,6 +106,10 @@ export default function Navbar() {
           </button>
           {user ? (
             <>
+              <Link href="/parties" className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white transition-colors">
+                <PartyPopper size={15} />
+                {isRTL ? "حفلاتي" : "My Parties"}
+              </Link>
               <Link href="/dashboard" className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white transition-colors">
                 <LayoutDashboard size={15} />
                 {isRTL ? "لوحتي" : "Dashboard"}
@@ -172,6 +176,9 @@ export default function Navbar() {
           <div className="pt-2 flex items-center gap-3 border-t border-white/[0.08]">
             {user ? (
               <>
+                <Link href="/parties" className="text-sm text-brand-warm-white/75" onClick={() => setMenuOpen(false)}>
+                  {isRTL ? "حفلاتي" : "My Parties"}
+                </Link>
                 <Link href="/dashboard" className="text-sm text-brand-warm-white/75" onClick={() => setMenuOpen(false)}>
                   {isRTL ? "لوحتي" : "Dashboard"}
                 </Link>

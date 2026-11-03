@@ -154,3 +154,44 @@ export interface Contribution {
   created_at: string;
   profiles?: { full_name: string | null; avatar_url: string | null } | null;
 }
+
+export type RsvpStatus = "pending" | "yes" | "no" | "maybe";
+
+export interface Party {
+  id: string;
+  host_id: string;
+  title: string;
+  starts_at: string;
+  location_name: string | null;
+  location_address: string | null;
+  lat: number | null;
+  lng: number | null;
+  notes: string | null;
+  cover_image: string | null;
+  created_at: string;
+}
+
+export interface PartyGuest {
+  id: string;
+  party_id: string;
+  name: string;
+  phone: string | null;
+  rsvp_token: string;
+  rsvp_status: RsvpStatus;
+  guest_count: number;
+  responded_at: string | null;
+  created_at: string;
+}
+
+export interface RsvpDetails {
+  party_id: string;
+  title: string;
+  starts_at: string;
+  location_name: string | null;
+  location_address: string | null;
+  notes: string | null;
+  cover_image: string | null;
+  guest_name: string;
+  guest_rsvp_status: RsvpStatus;
+  guest_count: number;
+}
