@@ -78,8 +78,28 @@ export default async function HomePage() {
             {t("home.heroSub")}
           </p>
 
-          {/* Search */}
-          <form action="/events" method="GET" className="relative max-w-xl mx-auto mt-11">
+          {/* Primary CTA — the Plan a Party wizard. This is the main entry
+              point into the product now, so it leads, full-size, right
+              under the hero copy, ahead of the ticket search below. */}
+          <Link
+            href="/plan-a-party"
+            className="relative mt-9 inline-flex items-center gap-3 rounded-full px-8 sm:px-10 py-4 sm:py-5 bg-gradient-to-br from-brand-gold-light to-brand-gold text-brand-midnight font-bold text-base sm:text-lg shadow-[0_18px_44px_-14px_rgba(200,151,58,0.55)] hover:opacity-90 transition-opacity"
+          >
+            <PartyPopper size={20} />
+            {isRTL ? "خطط لحفلتك الآن" : "Plan Your Party"}
+            <ArrowRight size={18} className={isRTL ? "rotate-180" : ""} />
+          </Link>
+          <p className="mt-3 text-xs text-brand-warm-white/45">
+            {isRTL
+              ? "أجب عن بضعة أسئلة ونرشح لك الأفضل — في أقل من دقيقة"
+              : "A few quick questions, real matches in under a minute"}
+          </p>
+
+          {/* Secondary — browse/search events & tickets directly */}
+          <p className="mt-8 text-xs font-semibold tracking-wide text-brand-warm-white/35 uppercase">
+            {isRTL ? "أو تصفح الفعاليات والتذاكر" : "Or browse events & tickets"}
+          </p>
+          <form action="/events" method="GET" className="relative max-w-xl mx-auto mt-3">
             <div className="absolute -inset-3.5 rounded-full bg-gradient-to-br from-brand-gold-light/35 to-brand-gold/15 blur-2xl opacity-80 -z-10" />
             <div className="flex items-center gap-3 rounded-full border border-white/[0.18] bg-white/[0.08] backdrop-blur-xl py-2 ps-6 pe-2">
               <Search size={18} className="text-brand-gold-light shrink-0" />
@@ -110,25 +130,6 @@ export default async function HomePage() {
               </Link>
             ))}
           </div>
-
-          {/* Plan a Party CTA */}
-          <Link
-            href="/plan-a-party"
-            className="mt-9 inline-flex items-center gap-2.5 bg-white/[0.06] hover:bg-white/[0.1] border border-white/15 hover:border-brand-gold/40 rounded-2xl px-6 py-4 transition-colors"
-          >
-            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-gold-light to-brand-gold flex items-center justify-center shrink-0">
-              <PartyPopper size={16} className="text-brand-midnight" />
-            </span>
-            <span className="text-start">
-              <span className="block text-sm font-semibold text-brand-warm-white">
-                {isRTL ? "لا تعرف من أين تبدأ؟" : "Not sure where to start?"}
-              </span>
-              <span className="block text-xs text-brand-warm-white/55">
-                {isRTL ? "أجب عن بضعة أسئلة ونخطط لك" : "Answer a few questions and we'll plan it with you"}
-              </span>
-            </span>
-            <ArrowRight size={16} className={`text-brand-gold-light ms-2 shrink-0 ${isRTL ? "rotate-180" : ""}`} />
-          </Link>
         </div>
       </section>
 
