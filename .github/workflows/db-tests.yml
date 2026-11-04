@@ -1,0 +1,80 @@
+name: Database (RLS) tests
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/db-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - ".github/workflows/db-tests.yml"
+
+jobs:
+  pgtap:
+    name: pgTAP RLS tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Postgres + pgTAP + postgis + pg_cron
+        run: |
+          set -e
+          sudo apt-get update
+          # Install whichever Postgres major version this runner's Ubuntu
+          # release defaults to, then install the matching versioned
+          # extension packages for it -- the extension packages are always
+          # named postgresql-<N>-<extension>, and hardcoding a specific
+          # <N> breaks the moment GitHub's ubuntu-latest image moves to a
+          # newer Ubuntu release that ships a different default version
+          # (this is exactly what broke here: ubuntu-latest moved past the
+          # Ubuntu release that defaults to Postgres 16).
+          sudo apt-get install -y postgresql postgresql-contrib
+          PG_MAJOR=$(ls /usr/lib/postgresql | sort -V | tail -1)
+          echo "Detected Postgres major version: $PG_MAJOR"
+          sudo apt-get install -y "postgresql-${PG_MAJOR}-pgtap" "postgresql-${PG_MAJOR}-postgis-3" "postgresql-${PG_MAJOR}-cron" pgtap
+
+          # Installing the package does not reliably leave the server
+          # running/accepting connections on this runner image -- start it
+          # explicitly and wait until it actually answers before moving on,
+          # instead of assuming it's up.
+          sudo systemctl start postgresql
+          for i in $(seq 1 10); do
+            sudo -u postgres pg_isready && break
+            echo "waiting for postgres to accept connections... ($i/10)"
+            sleep 1
+          done
+          sudo -u postgres pg_isready
+
+      - name: Enable pg_cron (preload + target database)
+        run: |
+          set -e
+          PGCONF=$(sudo -u postgres psql -tAc "show config_file;")
+          echo "shared_preload_libraries = 'pg_cron'" | sudo tee -a "$PGCONF"
+          echo "cron.database_name = 'sanatix_test'" | sudo tee -a "$PGCONF"
+          sudo systemctl restart postgresql
+          for i in $(seq 1 10); do
+            sudo -u postgres pg_isready && break
+            echo "waiting for postgres to come back up after restart... ($i/10)"
+            sleep 1
+          done
+          sudo -u postgres pg_isready
+
+      - name: Create test database
+        run: sudo -u postgres psql -c "CREATE DATABASE sanatix_test;"
+
+      - name: Load auth shim, schema, migrations, and test fixtures
+        run: |
+          set -e
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/tests/fixtures/local_auth_shim.sql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/schema.sql
+          for f in supabase/migrations/*.sql; do
+            sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f "$f"
+          done
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/tests/fixtures/grants.sql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/tests/fixtures/test_helpers.sql
+          sudo -u postgres psql -d sanatix_test -c "create extension if not exists pgtap;"
+
+      - name: Run pgTAP RLS tests
+        run: sudo -u postgres pg_prove -d sanatix_test supabase/tests/rls/*.sql
