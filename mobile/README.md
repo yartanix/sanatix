@@ -140,6 +140,52 @@ Until step 3 is run, the app only runs inside Expo Go — which is genuinely
 fine for using it yourself or testing with a few people (just share the
 `npx expo start` QR code), just not for public distribution.
 
+## Testing with EAS Simulator (cloud devices, no phone needed)
+
+EAS Simulator runs a real iOS Simulator or Android Emulator on Expo's own
+cloud and streams it to a browser tab — useful for installing a build and
+poking at it (or capturing a crash) without a physical device, USB cable,
+or wireless-ADB pairing dance. As of writing it's a limited-access preview,
+not open on every account yet.
+
+**Check whether it's enabled on this account:**
+```bash
+cd mobile
+eas simulator:availability --json --non-interactive
+```
+If it isn't yet, join the waitlist at https://expo.dev/services/simulators
+(sign in with the same account `eas login` uses).
+
+**A `simulator` build profile is already set up in `eas.json`** so there's
+nothing left to configure once access is granted:
+```bash
+eas build --profile simulator --platform android
+eas build --profile simulator --platform ios
+```
+The iOS side sets `"simulator": true`, which produces a `.app` built for
+the Simulator instead of a code-signed `.ipa` for a real device — **this
+does not need the Apple Developer account to be active**, so iOS testing
+here can start before that $99/yr enrollment finishes activating. The
+Android side just reuses the same internal/`preview`-channel APK as the
+`preview` profile — it already runs fine in an emulator.
+
+**Start a cloud session with that build:**
+```bash
+# grab the build id of the one you just made (or any previous one)
+eas build:list --platform android --profile simulator --limit 1 --json
+
+eas simulator:start --platform android --type agent-device \
+  --build-id <build-id-from-above> --name "sanatix android test"
+# same for --platform ios with an ios build id
+```
+This prints a `webPreviewUrl` — open it to watch (and interact with) the
+app running on a cloud device. Session recordings and any native crash are
+visible directly in that browser tab, no `adb logcat`/pairing required.
+
+For someone to just drive it themselves without any CLI, there's also a
+share-a-link flow: `eas simulator:start --platform ios --type
+web-preview-only --name "quick look"` gives a URL anyone can open.
+
 ## Over-the-air updates (EAS Update)
 
 Every real build (preview or production, from CI or run by hand) now
