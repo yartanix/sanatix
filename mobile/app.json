@@ -49,8 +49,8 @@
       [
         "@sentry/react-native/expo",
         {
-          "organization": "REPLACE_WITH_YOUR_SENTRY_ORG_SLUG",
-          "project": "REPLACE_WITH_YOUR_SENTRY_PROJECT_SLUG"
+          "organization": "yartanix",
+          "project": "sanatix-mobile"
         }
       ],
       "expo-asset",
