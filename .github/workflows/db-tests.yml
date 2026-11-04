@@ -18,10 +18,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Postgres 16 + pgTAP + postgis + pg_cron
+      - name: Install Postgres + pgTAP + postgis + pg_cron
         run: |
+          set -e
           sudo apt-get update
-          sudo apt-get install -y postgresql-16 postgresql-16-pgtap postgresql-16-postgis-3 postgresql-16-cron pgtap
+          # Install whichever Postgres major version this runner's Ubuntu
+          # release defaults to, then install the matching versioned
+          # extension packages for it -- the extension packages are always
+          # named postgresql-<N>-<extension>, and hardcoding a specific
+          # <N> breaks the moment GitHub's ubuntu-latest image moves to a
+          # newer Ubuntu release that ships a different default version
+          # (this is exactly what broke here: ubuntu-latest moved past the
+          # Ubuntu release that defaults to Postgres 16).
+          sudo apt-get install -y postgresql postgresql-contrib
+          PG_MAJOR=$(ls /usr/lib/postgresql | sort -V | tail -1)
+          echo "Detected Postgres major version: $PG_MAJOR"
+          sudo apt-get install -y "postgresql-${PG_MAJOR}-pgtap" "postgresql-${PG_MAJOR}-postgis-3" "postgresql-${PG_MAJOR}-cron" pgtap
 
       - name: Enable pg_cron (preload + target database)
         run: |
