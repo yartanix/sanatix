@@ -53,7 +53,14 @@
           "project": "REPLACE_WITH_YOUR_SENTRY_PROJECT_SLUG"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#C8973A"
+        }
+      ]
     ],
     "extra": {
       "router": {

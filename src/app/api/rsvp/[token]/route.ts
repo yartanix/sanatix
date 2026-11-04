@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendExpoPushNotifications } from "@/lib/push/send-expo-push";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import type { RsvpDetails } from "@/types";
 
@@ -57,5 +59,52 @@ export async function POST(req: NextRequest, { params }: Params) {
   });
 
   if (error) return NextResponse.json({ error: "Invitation not found" }, { status: 404 });
+
+  // Best-effort: let the host know on their phone. Runs via Next's after()
+  // so it actually finishes on serverless (Vercel can otherwise freeze the
+  // function the instant the response below is sent) — but it never blocks
+  // or fails the RSVP response itself. The guest's RSVP is already saved
+  // at this point regardless of what happens here.
+  after(() =>
+    notifyHostOfRsvp(token, parsed.data.status).catch((err) =>
+      console.error("notifyHostOfRsvp failed:", err)
+    )
+  );
+
   return NextResponse.json({ ok: true });
+}
+
+async function notifyHostOfRsvp(token: string, status: "yes" | "no" | "maybe") {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("get_rsvp_details", { token }).maybeSingle();
+  if (!data) return;
+  const details = data as RsvpDetails;
+
+  // Needs the service-role client from here on: finding "who hosts this
+  // party" and "what are their push tokens" is a cross-user lookup by
+  // design (a guest's request is what triggers notifying a different
+  // person, the host) and isn't something RLS is meant to allow for an
+  // unauthenticated guest session. This is read-only and narrowly scoped
+  // to exactly the one party this RSVP belongs to.
+  const admin = createAdminClient();
+  const { data: party } = await admin
+    .from("parties")
+    .select("host_id")
+    .eq("id", details.party_id)
+    .maybeSingle();
+  if (!party) return;
+
+  const { data: tokens } = await admin
+    .from("push_tokens")
+    .select("expo_push_token")
+    .eq("user_id", party.host_id);
+  if (!tokens || tokens.length === 0) return;
+
+  const statusLabel = status === "yes" ? "is coming" : status === "no" ? "can't make it" : "might come";
+  await sendExpoPushNotifications(
+    tokens.map((t) => t.expo_push_token),
+    "New RSVP",
+    `${details.guest_name} ${statusLabel} to ${details.title}`,
+    { partyId: details.party_id }
+  );
 }

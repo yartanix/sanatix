@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import { registerForPushNotifications } from "./push";
 
 interface AuthContextValue {
   session: Session | null;
@@ -17,6 +18,10 @@ const AuthContext = createContext<AuthContextValue>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // Register for push at most once per user per app run — onAuthStateChange
+  // can fire repeatedly for the same user (token refresh, etc.) and we
+  // don't need to re-request permission or re-upsert the token every time.
+  const registeredUserId = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -28,6 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId || registeredUserId.current === userId) return;
+    registeredUserId.current = userId;
+    void registerForPushNotifications(userId);
+  }, [session]);
 
   async function signOut() {
     await supabase.auth.signOut();
