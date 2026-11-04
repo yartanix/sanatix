@@ -35,12 +35,31 @@ jobs:
           echo "Detected Postgres major version: $PG_MAJOR"
           sudo apt-get install -y "postgresql-${PG_MAJOR}-pgtap" "postgresql-${PG_MAJOR}-postgis-3" "postgresql-${PG_MAJOR}-cron" pgtap
 
+          # Installing the package does not reliably leave the server
+          # running/accepting connections on this runner image -- start it
+          # explicitly and wait until it actually answers before moving on,
+          # instead of assuming it's up.
+          sudo systemctl start postgresql
+          for i in $(seq 1 10); do
+            sudo -u postgres pg_isready && break
+            echo "waiting for postgres to accept connections... ($i/10)"
+            sleep 1
+          done
+          sudo -u postgres pg_isready
+
       - name: Enable pg_cron (preload + target database)
         run: |
+          set -e
           PGCONF=$(sudo -u postgres psql -tAc "show config_file;")
           echo "shared_preload_libraries = 'pg_cron'" | sudo tee -a "$PGCONF"
           echo "cron.database_name = 'sanatix_test'" | sudo tee -a "$PGCONF"
           sudo systemctl restart postgresql
+          for i in $(seq 1 10); do
+            sudo -u postgres pg_isready && break
+            echo "waiting for postgres to come back up after restart... ($i/10)"
+            sleep 1
+          done
+          sudo -u postgres pg_isready
 
       - name: Create test database
         run: sudo -u postgres psql -c "CREATE DATABASE sanatix_test;"
