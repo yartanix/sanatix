@@ -6,6 +6,7 @@ import Navbar from "@/components/layout/Navbar";
 import { Link } from "@/i18n/routing";
 import ShareButton from "@/components/bookings/ShareButton";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
+import QRCode from "qrcode";
 
 interface ConfirmPageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -31,6 +32,17 @@ export default async function BookingConfirmPage({ params }: ConfirmPageProps) {
 
   const eventTitle = locale === "ar" ? booking.events.title_ar : booking.events.title_en;
   const ticketName = locale === "ar" ? booking.ticket_types.name_ar : booking.ticket_types.name_en;
+
+  // Real, scannable QR code encoding the booking's check-in code (the same
+  // "SNX-..." code already shown as text below it, and in the organizer's
+  // attendee list) — rendered server-side as a data URI, no client JS needed.
+  const qrDataUrl = booking.qr_code
+    ? await QRCode.toDataURL(booking.qr_code, {
+        width: 192,
+        margin: 1,
+        color: { dark: "#1C1A17", light: "#FFFFFF" },
+      })
+    : null;
 
   return (
     <div className="min-h-screen bg-brand-warm-white">
@@ -101,11 +113,19 @@ export default async function BookingConfirmPage({ params }: ConfirmPageProps) {
             </div>
 
             <div className="mt-5 pt-4 border-t border-black/5 text-center">
-              <div className="w-24 h-24 bg-brand-sand rounded-xl mx-auto flex items-center justify-center mb-2">
-                <div className="text-xs text-brand-ink/30 font-mono text-center leading-tight">
-                  QR<br/>CODE
+              {qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt={isRTL ? "رمز الاستجابة السريعة للتذكرة" : "Ticket QR code"}
+                  className="w-24 h-24 rounded-xl mx-auto mb-2 border border-black/5"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-brand-sand rounded-xl mx-auto flex items-center justify-center mb-2">
+                  <div className="text-xs text-brand-ink/30 text-center leading-tight">
+                    {isRTL ? "جارٍ التجهيز" : "Preparing…"}
+                  </div>
                 </div>
-              </div>
+              )}
               <p className="text-xs text-brand-ink/40 font-mono">{booking.qr_code}</p>
             </div>
           </div>
@@ -113,10 +133,16 @@ export default async function BookingConfirmPage({ params }: ConfirmPageProps) {
 
         {/* Actions */}
         <div className="flex gap-3">
-          <button className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-black/10 bg-white text-sm text-brand-ink/70 hover:bg-brand-sand transition-colors">
-            <Download size={15} />
-            {isRTL ? "تحميل" : "Download"}
-          </button>
+          {booking.qr_code && (
+            <a
+              href={`/api/bookings/${id}/ticket`}
+              download
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-black/10 bg-white text-sm text-brand-ink/70 hover:bg-brand-sand transition-colors"
+            >
+              <Download size={15} />
+              {isRTL ? "تحميل" : "Download"}
+            </a>
+          )}
           <ShareButton title={eventTitle} isRTL={isRTL} />
         </div>
 
