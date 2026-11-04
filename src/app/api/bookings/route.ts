@@ -1,14 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { z } from "zod";
-
-const itemSchema = z.object({
-  ticket_type_id: z.string().uuid(),
-  quantity: z.number().int().min(1).max(10),
-});
-const bodySchema = z.object({
-  items: z.array(itemSchema).min(1).max(20),
-});
+import { bookingRequestSchema } from "@/lib/validation/schemas";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -16,7 +8,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const json = await req.json().catch(() => null);
-  const parsed = bodySchema.safeParse(json);
+  const parsed = bookingRequestSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid request" },
