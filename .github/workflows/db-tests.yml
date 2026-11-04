@@ -1,0 +1,49 @@
+name: Database (RLS) tests
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/db-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - ".github/workflows/db-tests.yml"
+
+jobs:
+  pgtap:
+    name: pgTAP RLS tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Postgres 16 + pgTAP + postgis + pg_cron
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-16 postgresql-16-pgtap postgresql-16-postgis-3 postgresql-16-cron pgtap
+
+      - name: Enable pg_cron (preload + target database)
+        run: |
+          PGCONF=$(sudo -u postgres psql -tAc "show config_file;")
+          echo "shared_preload_libraries = 'pg_cron'" | sudo tee -a "$PGCONF"
+          echo "cron.database_name = 'sanatix_test'" | sudo tee -a "$PGCONF"
+          sudo systemctl restart postgresql
+
+      - name: Create test database
+        run: sudo -u postgres psql -c "CREATE DATABASE sanatix_test;"
+
+      - name: Load auth shim, schema, migrations, and test fixtures
+        run: |
+          set -e
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/tests/fixtures/local_auth_shim.sql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/schema.sql
+          for f in supabase/migrations/*.sql; do
+            sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f "$f"
+          done
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/tests/fixtures/grants.sql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/tests/fixtures/test_helpers.sql
+          sudo -u postgres psql -d sanatix_test -c "create extension if not exists pgtap;"
+
+      - name: Run pgTAP RLS tests
+        run: sudo -u postgres pg_prove -d sanatix_test supabase/tests/rls/*.sql
