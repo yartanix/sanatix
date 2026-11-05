@@ -18,10 +18,14 @@ insert into ticket_types (id, event_id, name_ar, name_en, price, currency, total
 values ('55555555-5555-5555-5555-555555555555', '44444444-4444-4444-4444-444444444444',
         'عادي', 'Regular', 100, 'SAR', 100, 0);
 
+-- 'pending', not 'confirmed': migration 013 only lets the owner
+-- self-transition a booking from pending -> cancelled (everything else
+-- about a booking, including any other status change, is locked down
+-- to the system — see that migration's own comment for why).
 insert into bookings (id, event_id, ticket_type_id, user_id, quantity, total_amount, currency, status)
 values ('66666666-6666-6666-6666-666666666666', '44444444-4444-4444-4444-444444444444',
         '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
-        1, 100, 'SAR', 'confirmed');
+        1, 100, 'SAR', 'pending');
 
 select tests.login_as('11111111-1111-1111-1111-111111111111');
 select is(
