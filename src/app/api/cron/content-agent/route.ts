@@ -28,14 +28,26 @@ const GCC_WEEKDAY = 4;
  * requests once CRON_SECRET is set; manual calls need the same header.
  */
 export async function GET(req: NextRequest) {
+  // Security audit fix: this used to fall open (just a console.warn) if
+  // CRON_SECRET wasn't set, rather than fail closed. An unauthenticated
+  // version of this endpoint lets anyone trigger costly Claude-backed
+  // content-generation runs that write directly to events/venues/vendors
+  // via the service-role client — a cost-abuse and content-injection
+  // vector, not just a theoretical gap. Vercel Cron always sends the
+  // Authorization header once CRON_SECRET is configured, so a missing
+  // secret in production is a misconfiguration to surface loudly (500),
+  // not a reason to silently run unauthenticated.
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = req.headers.get("authorization");
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  } else {
-    console.warn("[content-agent] CRON_SECRET is not set — route is unauthenticated. Set it before going live.");
+  if (!cronSecret) {
+    console.error("[content-agent] CRON_SECRET is not set — refusing to run unauthenticated.");
+    return NextResponse.json(
+      { error: "Server misconfigured: CRON_SECRET is not set" },
+      { status: 500 }
+    );
+  }
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const startedAt = Date.now();

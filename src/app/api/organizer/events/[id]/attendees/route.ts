@@ -1,13 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
+import { clampPagination } from "@/lib/pagination";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
-  const page   = parseInt(searchParams.get("page") ?? "1");
-  const limit  = parseInt(searchParams.get("limit") ?? "50");
-  const offset = (page - 1) * limit;
+  const { page, limit, offset } = clampPagination(
+    searchParams.get("page"),
+    searchParams.get("limit"),
+    { defaultLimit: 50, maxLimit: 200 }
+  );
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

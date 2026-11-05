@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { buildIlikeOrFilter } from "@/lib/supabase/search";
+import { clampPagination } from "@/lib/pagination";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -7,9 +9,11 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get("category");
   const q        = searchParams.get("q");
   const featured = searchParams.get("featured");
-  const page     = parseInt(searchParams.get("page") ?? "1");
-  const limit    = parseInt(searchParams.get("limit") ?? "12");
-  const offset   = (page - 1) * limit;
+  const { page, limit, offset } = clampPagination(
+    searchParams.get("page"),
+    searchParams.get("limit"),
+    { defaultLimit: 12, maxLimit: 50 }
+  );
 
   const supabase = await createClient();
 
@@ -27,7 +31,7 @@ export async function GET(request: NextRequest) {
   if (city)     query = query.eq("venue_city", city);
   if (category) query = query.eq("category", category);
   if (featured) query = query.eq("is_featured", true);
-  if (q)        query = query.or(`title_ar.ilike.%${q}%,title_en.ilike.%${q}%`);
+  if (q)        query = query.or(buildIlikeOrFilter(q, ["title_ar", "title_en"]));
 
   const { data, error, count } = await query;
 

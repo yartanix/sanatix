@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { buildIlikeOrFilter } from "@/lib/supabase/search";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { Search, CalendarDays, MapPin } from "lucide-react";
@@ -54,7 +55,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   if (city)     query = query.eq("venue_city", city);
   if (category) query = query.eq("category", category);
-  if (q)        query = query.or(`title_ar.ilike.%${q}%,title_en.ilike.%${q}%`);
+  if (q)        query = query.or(buildIlikeOrFilter(q, ["title_ar", "title_en"]));
 
   const [{ data: events, count }, { data: cityRows }] = await Promise.all([
     query,

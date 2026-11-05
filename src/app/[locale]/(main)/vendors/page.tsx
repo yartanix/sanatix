@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { buildIlikeOrFilter } from "@/lib/supabase/search";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { Search } from "lucide-react";
@@ -59,7 +60,7 @@ export default async function VendorsPage({ searchParams }: PageProps) {
 
   if (city)     query = query.eq("city", city);
   if (category) query = query.eq("category", category);
-  if (q)        query = query.or(`name_ar.ilike.%${q}%,name_en.ilike.%${q}%`);
+  if (q)        query = query.or(buildIlikeOrFilter(q, ["name_ar", "name_en"]));
 
   const { data } = await query;
   const vendors = (data ?? []) as Vendor[];

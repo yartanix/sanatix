@@ -1,5 +1,5 @@
 begin;
-select plan(5);
+select plan(6);
 
 set local role postgres;
 insert into auth.users (id, email) values
@@ -24,13 +24,25 @@ select is(
 -- a logged-in, non-admin customer also cannot read them
 select tests.login_as('aaaaaaaa-0000-0000-0000-000000000002');
 select lives_ok(
-  $$ insert into outbound_clicks (kind, target_url) values ('vendor_website', 'https://example.com/vendor') $$,
-  'an authenticated non-admin can also insert a click'
+  $$ insert into outbound_clicks (kind, target_url, user_id) values
+     ('vendor_website', 'https://example.com/vendor', 'aaaaaaaa-0000-0000-0000-000000000002') $$,
+  'an authenticated non-admin can insert a click attributed to themselves'
 );
 select is(
   (select count(*)::int from outbound_clicks),
   0,
   'an authenticated non-admin still cannot read outbound click analytics'
+);
+
+-- migration 014: a logged-in user cannot attribute a click to someone
+-- else's user_id via a direct insert (the app route never does this —
+-- it always derives user_id from the caller's own session — but a
+-- direct PostgREST call must be blocked from spoofing it too).
+select throws_like(
+  $$ insert into outbound_clicks (kind, target_url, user_id) values
+     ('vendor_website', 'https://example.com/vendor', 'aaaaaaaa-0000-0000-0000-000000000001') $$,
+  '%new row violates row-level security policy%',
+  'a user cannot log an outbound click attributed to a different user_id'
 );
 
 -- only an admin can read them
