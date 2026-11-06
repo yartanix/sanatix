@@ -434,6 +434,28 @@ async function linkEventsToVenues(db: Admin, city: SweepCity, venues: MatchableV
 
 // ─── Vendors (unchanged policy: inserted unverified) ──────────
 
+/**
+ * Events and venues never trust the model's free-text city/country — they
+ * always store city.name/city.country from our own SweepCity list
+ * (EventDraftSchema/VenueDraftSchema don't even have city/country fields;
+ * sweepCityEvents/sweepCityVenues pass them in directly). Vendors were the
+ * one exception: VendorDraftSchema takes city/country straight from the
+ * model's JSON with only a length check, even though the prompt asks it to
+ * pick from this exact sweep's city list. A near-miss (wrong case, a typo,
+ * a transliteration) stored verbatim breaks `.eq("city", city)` filtering
+ * in /vendors and /api/vendors (exact-match, not fuzzy) and — since the
+ * vendors page builds its city-filter dropdown from the distinct values
+ * actually in the table (vendors/page.tsx) rather than a canonical list —
+ * shows up to users as a second, near-duplicate city option once an admin
+ * verifies that vendor. This resolves the model's city string back to the
+ * SweepCity it must have meant, or rejects the row if it doesn't match any
+ * city actually in scope for this sweep.
+ */
+function resolveSweptCity(candidate: string, cities: SweepCity[]): SweepCity | null {
+  const target = candidate.trim().toLowerCase();
+  return cities.find((c) => c.name.toLowerCase() === target) ?? null;
+}
+
 async function sweepVendors(db: Admin, cities: SweepCity[], ownerId: string, count: number) {
   const research = await researchAndExtractJson(vendorDiscoveryPrompt(cities, count), 8);
   let created = 0, skipped = 0, invalid = 0;
@@ -443,15 +465,18 @@ async function sweepVendors(db: Admin, cities: SweepCity[], ownerId: string, cou
     if (!parsed.success) { invalid++; continue; }
     const draft = parsed.data;
 
+    const city = resolveSweptCity(draft.city, cities);
+    if (!city) { invalid++; continue; }
+
     const { data: dupes } = await db.from("vendors").select("id")
-      .ilike("name_en", draft.name_en).eq("city", draft.city).limit(1);
+      .ilike("name_en", draft.name_en).eq("city", city.name).limit(1);
     if (dupes && dupes.length > 0) { skipped++; continue; }
 
     const { error } = await db.from("vendors").insert({
       owner_id: ownerId,
       name_en: draft.name_en, name_ar: draft.name_ar,
       description_en: draft.description_en, description_ar: draft.description_ar,
-      category: draft.category, city: draft.city, country: draft.country,
+      category: draft.category, city: city.name, country: city.country,
       website_url: draft.website_url ?? null, instagram_url: draft.instagram_url ?? null,
       whatsapp: draft.whatsapp ?? null,
       is_verified: false, // vendors are onboarded, not scraped — stays a human decision
