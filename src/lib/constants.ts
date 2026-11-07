@@ -83,7 +83,7 @@ export const VENUE_TYPE_LABEL: Record<string, { ar: string; en: string }> = {
 export interface SweepCity {
   name: string;      // canonical English name stored in the DB
   name_ar: string;
-  country: "SA" | "AE" | "QA" | "BH" | "KW";
+  country: "SA" | "AE" | "QA" | "BH" | "KW" | "OM";
   label: string;     // what the research prompt uses, e.g. "Riyadh, Saudi Arabia"
 }
 
@@ -102,6 +102,11 @@ export const GCC_CITIES: SweepCity[] = [
   { name: "Doha",        name_ar: "الدوحة",   country: "QA", label: "Doha, Qatar" },
   { name: "Manama",      name_ar: "المنامة",  country: "BH", label: "Manama, Bahrain" },
   { name: "Kuwait City", name_ar: "الكويت",   country: "KW", label: "Kuwait City, Kuwait" },
+  // Completes GCC coverage — Bahrain (a smaller market) was already swept,
+  // so leaving Oman out looked like an oversight rather than a deliberate
+  // scope cut. Weekly-only sweep, same as the rest of GCC_CITIES, so this
+  // adds ~1 extra job to the once-a-week GCC run, not the daily KSA one.
+  { name: "Muscat",      name_ar: "مسقط",     country: "OM", label: "Muscat, Oman" },
 ];
 
 export const ALL_SWEEP_CITIES: SweepCity[] = [...KSA_CITIES, ...GCC_CITIES];
