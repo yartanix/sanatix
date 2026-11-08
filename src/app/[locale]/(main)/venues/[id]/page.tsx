@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { MapPin, Users, Globe, Instagram, Phone, MessageCircle, Navigation, Mail, ArrowLeft, ArrowRight, Tag } from "lucide-react";
+import { MapPin, Users, Globe, Phone, MessageCircle, Navigation, Mail, ArrowLeft, ArrowRight, Tag } from "lucide-react";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import Navbar from "@/components/layout/Navbar";
 import EventCard from "@/components/events/EventCard";
 import { Link } from "@/i18n/routing";
@@ -225,7 +226,7 @@ export default async function VenuePage({ params }: VenuePageProps) {
                 )}
                 {venue.instagram_url && (
                   <a href={venue.instagram_url} target="_blank" rel="noopener noreferrer" className={contactBtn}>
-                    <Instagram size={15} className="text-brand-gold" /> {t("venues.instagram")}
+                    <InstagramIcon size={15} className="text-brand-gold" /> {t("venues.instagram")}
                   </a>
                 )}
                 {venue.phone && (

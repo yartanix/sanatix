@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { MapPin, Globe, Instagram, MessageCircle, Star, ArrowLeft, ArrowRight } from "lucide-react";
+import { MapPin, Globe, MessageCircle, Star, ArrowLeft, ArrowRight } from "lucide-react";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import Navbar from "@/components/layout/Navbar";
 import VendorCard from "@/components/vendors/VendorCard";
 import { Link } from "@/i18n/routing";
@@ -228,7 +229,7 @@ export default async function VendorPage({ params }: VendorPageProps) {
                 )}
                 {vendor.instagram_url && (
                   <a href={vendor.instagram_url} target="_blank" rel="noopener noreferrer" className={contactBtn}>
-                    <Instagram size={15} className="text-brand-gold" /> {t("vendors.instagram")}
+                    <InstagramIcon size={15} className="text-brand-gold" /> {t("vendors.instagram")}
                   </a>
                 )}
                 {waHref && (
