@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "next-intl/server";
-import { MapPin, Globe, Instagram } from "lucide-react";
+import { MapPin, Globe } from "lucide-react";
+import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import VendorReviewActions from "@/components/admin/VendorReviewActions";
 import { VENDOR_CATEGORY_LABEL } from "@/lib/constants";
 
@@ -98,7 +99,7 @@ export default async function AdminVendorsPage() {
                         )}
                         {vendor.instagram_url && (
                           <a href={vendor.instagram_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[11px] text-white/40 hover:text-amber-400">
-                            <Instagram size={11} /> Instagram
+                            <InstagramIcon size={11} /> Instagram
                           </a>
                         )}
                         {vendor.source_url && (
