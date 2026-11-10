@@ -24,7 +24,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "net.sanatix.app",
       "infoPlist": {
-        "NSContactsUsageDescription": "Sanatix uses your contacts so you can pick who to invite to a party. Nothing is uploaded except the names and numbers of people you choose to invite."
+        "NSContactsUsageDescription": "Sanatix uses your contacts so you can pick who to invite to a party. Nothing is uploaded except the names and numbers of people you choose to invite.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -66,6 +67,9 @@
         {
           "android": {
             "kotlinVersion": "1.9.25"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
           }
         }
       ]
