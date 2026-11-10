@@ -50,6 +50,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     token,
     new_status: parsed.data.status,
     new_guest_count: parsed.data.guestCount ?? 1,
+    new_custom_answer: parsed.data.customAnswer ?? null,
   });
 
   if (error) return NextResponse.json({ error: "Invitation not found" }, { status: 404 });

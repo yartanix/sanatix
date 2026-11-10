@@ -11,7 +11,7 @@ import {
   Alert,
 } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Plus, Share2, Trash2, Users as UsersIcon, RefreshCw } from "lucide-react-native";
+import { Plus, Share2, Trash2, Users as UsersIcon, RefreshCw, DoorOpen, BadgeCheck, MessageCircle } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
 import { SITE_URL } from "@/lib/supabase";
@@ -86,6 +86,28 @@ export default function PartyDetailScreen() {
     load();
   }
 
+  async function toggleCheckedIn(guest: PartyGuest) {
+    const nextValue = guest.checked_in_at ? null : new Date().toISOString();
+    await supabase.from("party_guests").update({ checked_in_at: nextValue }).eq("id", guest.id);
+    load();
+  }
+
+  function doorPassUrl() {
+    if (!party) return "";
+    return `${SITE_URL}/checkin/${party.door_pass_token}`;
+  }
+
+  async function shareDoorPass() {
+    if (!party) return;
+    try {
+      await Share.share({
+        message: `Door check-in link for "${party.title}" — use this to check guests in: ${doorPassUrl()}`,
+      });
+    } catch {
+      // cancelled
+    }
+  }
+
   function rsvpUrl(token: string) {
     // Same locale-prefix convention as the web app's routing config
     // (localePrefix: "as-needed" — Arabic/default has no prefix).
@@ -122,6 +144,9 @@ export default function PartyDetailScreen() {
   }
 
   const yesCount = guests.filter((g) => g.rsvp_status === "yes").length;
+  const maybeCount = guests.filter((g) => g.rsvp_status === "maybe").length;
+  const noCount = guests.filter((g) => g.rsvp_status === "no").length;
+  const checkedInCount = guests.filter((g) => g.checked_in_at).length;
 
   return (
     <View style={styles.screen}>
@@ -162,6 +187,33 @@ export default function PartyDetailScreen() {
                 <Text style={[styles.subtle, { fontWeight: "600" }]}>Refresh</Text>
               </Pressable>
             </View>
+
+            {guests.length > 0 && (
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+                <View style={[styles.card, { flex: 1, paddingVertical: 10, alignItems: "center" }]}>
+                  <Text style={{ fontWeight: "800", color: colors.ink }}>{maybeCount}</Text>
+                  <Text style={[styles.subtle, { fontSize: 10 }]}>Maybe</Text>
+                </View>
+                <View style={[styles.card, { flex: 1, paddingVertical: 10, alignItems: "center" }]}>
+                  <Text style={{ fontWeight: "800", color: colors.ink }}>{noCount}</Text>
+                  <Text style={[styles.subtle, { fontSize: 10 }]}>Can&apos;t go</Text>
+                </View>
+                <View style={[styles.card, { flex: 1, paddingVertical: 10, alignItems: "center" }]}>
+                  <Text style={{ fontWeight: "800", color: colors.success }}>
+                    {checkedInCount}/{yesCount}
+                  </Text>
+                  <Text style={[styles.subtle, { fontSize: 10 }]}>Checked in</Text>
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={[styles.outlineButton, { flexDirection: "row", gap: 8, marginBottom: 10 }]}
+              onPress={shareDoorPass}
+            >
+              <DoorOpen size={16} color={colors.ink} />
+              <Text style={styles.outlineButtonText}>Share door check-in link</Text>
+            </Pressable>
 
             <Pressable
               style={[styles.outlineButton, { flexDirection: "row", gap: 8, marginBottom: 14 }]}
@@ -225,12 +277,32 @@ export default function PartyDetailScreen() {
             >
               <View style={{ flex: 1, marginRight: 8 }}>
                 <Text style={{ fontWeight: "700", color: colors.ink }}>{item.name}</Text>
-                <Text style={{ fontSize: 12, fontWeight: "700", color: status.color, marginTop: 2 }}>
-                  {status.label}
-                  {item.rsvp_status === "yes" && item.guest_count > 1 ? ` · ${item.guest_count} guests` : ""}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: status.color }}>
+                    {status.label}
+                    {item.rsvp_status === "yes" && item.guest_count > 1 ? ` · ${item.guest_count} guests` : ""}
+                  </Text>
+                  {item.invite_channel !== "none" && (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                      <MessageCircle size={10} color={colors.inkFaint} />
+                      <Text style={[styles.subtle, { fontSize: 10 }]}>
+                        {item.invite_channel === "whatsapp" ? "WhatsApp" : "SMS"}
+                        {item.invite_status === "sent" ? " sent" : item.invite_status === "failed" ? " failed" : ""}
+                      </Text>
+                    </View>
+                  )}
+                  {item.checked_in_at && (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                      <BadgeCheck size={11} color={colors.success} />
+                      <Text style={{ fontSize: 10, fontWeight: "700", color: colors.success }}>Checked in</Text>
+                    </View>
+                  )}
+                </View>
               </View>
               <View style={{ flexDirection: "row", gap: 14 }}>
+                <Pressable onPress={() => toggleCheckedIn(item)}>
+                  <BadgeCheck size={18} color={item.checked_in_at ? colors.success : colors.inkFaint} />
+                </Pressable>
                 <Pressable onPress={() => shareInvite(item)}>
                   <Share2 size={18} color={colors.ink} />
                 </Pressable>

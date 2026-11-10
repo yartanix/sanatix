@@ -157,6 +157,19 @@ export interface Contribution {
 
 export type RsvpStatus = "pending" | "yes" | "no" | "maybe";
 
+export type InviteChannel = "none" | "whatsapp" | "sms";
+export type InviteStatus = "pending" | "sent" | "failed";
+
+export interface InvitationTemplate {
+  id: string;
+  slug: string;
+  name_ar: string;
+  name_en: string;
+  accent_color: string;
+  is_premium: boolean;
+  sort_order: number;
+}
+
 export interface Party {
   id: string;
   host_id: string;
@@ -169,6 +182,13 @@ export interface Party {
   notes: string | null;
   cover_image: string | null;
   created_at: string;
+  template_id: string | null;
+  allow_plus_ones: boolean;
+  custom_question: string | null;
+  require_entry_code: boolean;
+  entry_code: string | null;
+  auto_send_channel: InviteChannel;
+  door_pass_token: string;
 }
 
 export interface PartyGuest {
@@ -181,6 +201,13 @@ export interface PartyGuest {
   guest_count: number;
   responded_at: string | null;
   created_at: string;
+  invite_channel: InviteChannel;
+  invite_status: InviteStatus;
+  invite_sent_at: string | null;
+  last_reminder_sent_at: string | null;
+  custom_answer: string | null;
+  checked_in_at: string | null;
+  checked_in_via: "door-pass" | "host" | null;
 }
 
 export interface RsvpDetails {
@@ -194,4 +221,11 @@ export interface RsvpDetails {
   guest_name: string;
   guest_rsvp_status: RsvpStatus;
   guest_count: number;
+  allow_plus_ones: boolean;
+  custom_question: string | null;
+  custom_answer: string | null;
+  require_entry_code: boolean;
+  entry_code: string | null;
+  template_accent: string;
+  checked_in_at: string | null;
 }
