@@ -3,6 +3,8 @@
 // Expo project, not sharing a build pipeline with the Next.js app.
 
 export type RsvpStatus = "pending" | "yes" | "no" | "maybe";
+export type InviteChannel = "none" | "whatsapp" | "sms";
+export type InviteStatus = "pending" | "sent" | "failed";
 
 export interface Party {
   id: string;
@@ -16,6 +18,11 @@ export interface Party {
   notes: string | null;
   cover_image: string | null;
   created_at: string;
+  allow_plus_ones: boolean;
+  custom_question: string | null;
+  require_entry_code: boolean;
+  auto_send_channel: InviteChannel;
+  door_pass_token: string;
 }
 
 export interface PartyGuest {
@@ -28,4 +35,8 @@ export interface PartyGuest {
   guest_count: number;
   responded_at: string | null;
   created_at: string;
+  invite_channel: InviteChannel;
+  invite_status: InviteStatus;
+  custom_answer: string | null;
+  checked_in_at: string | null;
 }

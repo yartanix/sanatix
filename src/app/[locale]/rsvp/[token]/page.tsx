@@ -107,6 +107,11 @@ export default async function RsvpPage({ params }: PageProps) {
               token={token}
               initialStatus={rsvp.guest_rsvp_status}
               initialGuestCount={rsvp.guest_count}
+              allowPlusOnes={rsvp.allow_plus_ones}
+              customQuestion={rsvp.custom_question}
+              initialCustomAnswer={rsvp.custom_answer}
+              requireEntryCode={rsvp.require_entry_code}
+              entryCode={rsvp.entry_code}
               isRTL={isRTL}
             />
           </div>

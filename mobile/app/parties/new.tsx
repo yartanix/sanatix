@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, ActivityIndicator, ScrollView, Platform } from "react-native";
+import { View, Text, TextInput, Pressable, ActivityIndicator, ScrollView, Platform, Switch } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -19,6 +19,10 @@ export default function NewPartyScreen() {
   const [locationName, setLocationName] = useState("");
   const [locationAddress, setLocationAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [allowPlusOnes, setAllowPlusOnes] = useState(true);
+  const [customQuestion, setCustomQuestion] = useState("");
+  const [requireEntryCode, setRequireEntryCode] = useState(false);
+  const [autoSendChannel, setAutoSendChannel] = useState<"none" | "whatsapp" | "sms">("none");
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -37,6 +41,11 @@ export default function NewPartyScreen() {
         location_name: locationName.trim() || null,
         location_address: locationAddress.trim() || null,
         notes: notes.trim() || null,
+        allow_plus_ones: allowPlusOnes,
+        custom_question: customQuestion.trim() || null,
+        require_entry_code: requireEntryCode,
+        entry_code: requireEntryCode ? Math.random().toString(36).slice(2, 8).toUpperCase() : null,
+        auto_send_channel: autoSendChannel,
       })
       .select()
       .single();
@@ -123,6 +132,57 @@ export default function NewPartyScreen() {
         onChangeText={setNotes}
         multiline
       />
+
+      <Text style={label}>Ask guests a question (optional)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="e.g. Any food allergies?"
+        placeholderTextColor={colors.inkFaint}
+        value={customQuestion}
+        onChangeText={setCustomQuestion}
+      />
+
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 18 }}>
+        <Text style={{ fontSize: 14, color: colors.ink }}>Allow guests to bring plus-ones</Text>
+        <Switch value={allowPlusOnes} onValueChange={setAllowPlusOnes} trackColor={{ true: colors.gold }} />
+      </View>
+
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
+        <View style={{ flex: 1, marginRight: 10 }}>
+          <Text style={{ fontSize: 14, color: colors.ink }}>Require an entry code at the door</Text>
+          <Text style={[styles.subtle, { fontSize: 11, marginTop: 2 }]}>We&apos;ll generate one automatically</Text>
+        </View>
+        <Switch value={requireEntryCode} onValueChange={setRequireEntryCode} trackColor={{ true: colors.gold }} />
+      </View>
+
+      <Text style={label}>Auto-send invites via</Text>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {(
+          [
+            { key: "none", label: "Manual" },
+            { key: "whatsapp", label: "WhatsApp" },
+            { key: "sms", label: "SMS" },
+          ] as const
+        ).map((opt) => (
+          <Pressable
+            key={opt.key}
+            onPress={() => setAutoSendChannel(opt.key)}
+            style={[
+              styles.outlineButton,
+              { flex: 1, paddingVertical: 10 },
+              autoSendChannel === opt.key && { borderColor: colors.gold, backgroundColor: colors.goldLight + "22" },
+            ]}
+          >
+            <Text style={styles.outlineButtonText}>{opt.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {autoSendChannel !== "none" && (
+        <Text style={[styles.subtle, { fontSize: 11, marginTop: 6 }]}>
+          Only sent to guests you give a phone number for on the web dashboard — adding guests here still uses
+          share links for now.
+        </Text>
+      )}
 
       {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
 

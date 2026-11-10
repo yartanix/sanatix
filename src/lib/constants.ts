@@ -34,7 +34,7 @@ export const EVENT_CATEGORY_LABEL: Record<string, { ar: string; en: string }> = 
 export const VENDOR_CATEGORIES = [
   "kids-entertainment", "bounce-houses", "cakes-desserts", "venue",
   "catering", "decoration", "entertainment", "photography",
-  "flowers", "sound-lighting", "transport", "printing",
+  "flowers", "sound-lighting", "transport", "printing", "event-staffing",
 ] as const;
 
 export const VENDOR_CATEGORY_LABEL: Record<string, { ar: string; en: string }> = {
@@ -50,6 +50,7 @@ export const VENDOR_CATEGORY_LABEL: Record<string, { ar: string; en: string }> =
   "sound-lighting":     { ar: "صوت وإضاءة",       en: "Sound & Lighting" },
   transport:            { ar: "نقل",              en: "Transport" },
   printing:             { ar: "طباعة",            en: "Printing" },
+  "event-staffing":     { ar: "تنظيم الدخول",      en: "Event Staffing & Check-in" },
 };
 
 export const VENUE_TYPES = [

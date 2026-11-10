@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
+import { sendPartyInvite } from "@/lib/notifications/messaging";
+import { formatDateTime } from "@/lib/utils";
+import { SITE_URL } from "@/lib/constants";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -27,7 +30,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const { data: party } = await supabase
     .from("parties")
-    .select("id")
+    .select("id, title, starts_at, auto_send_channel")
     .eq("id", id)
     .eq("host_id", user.id)
     .single();
@@ -42,16 +45,65 @@ export async function POST(req: NextRequest, { params }: Params) {
     );
   }
 
+  const channel = party.auto_send_channel as "none" | "whatsapp" | "sms";
   const rows = parsed.data.guests.map((g) => ({
     party_id: id,
     name: g.name,
     phone: g.phone ?? null,
+    // Only actually attempt delivery for guests we have a number for;
+    // others fall back to the existing manual share-link flow.
+    invite_channel: channel !== "none" && g.phone ? channel : "none",
   }));
 
   const { data, error } = await supabase.from("party_guests").insert(rows).select();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Best-effort, non-blocking: the guest rows are already saved and
+  // returned to the caller (who can still share links manually) no
+  // matter what happens with delivery. Runs via after() so it actually
+  // completes on serverless rather than racing the response.
+  if (channel !== "none") {
+    const toSend = (data ?? []).filter((g) => g.invite_channel !== "none" && g.phone);
+    after(() => sendInvitesBestEffort(toSend, party.title, party.starts_at, channel));
+  }
+
   return NextResponse.json({ guests: data }, { status: 201 });
+}
+
+async function sendInvitesBestEffort(
+  guests: { id: string; name: string; phone: string | null; rsvp_token: string }[],
+  partyTitle: string,
+  startsAt: string,
+  channel: "whatsapp" | "sms"
+) {
+  const supabase = await createClient();
+  const whenText = formatDateTime(startsAt, "en-US");
+
+  for (const guest of guests) {
+    if (!guest.phone) continue;
+    const result = await sendPartyInvite({
+      channel,
+      phone: guest.phone,
+      guestName: guest.name,
+      partyTitle,
+      whenText,
+      rsvpUrl: `${SITE_URL}/rsvp/${guest.rsvp_token}`,
+      kind: "invite",
+    });
+
+    // "skipped" (provider not configured) deliberately stays "pending",
+    // not "failed" — there's nothing wrong with the guest's row, the
+    // host just hasn't finished setting up WhatsApp/SMS yet.
+    if (result.skipped) continue;
+
+    await supabase
+      .from("party_guests")
+      .update({
+        invite_status: result.ok ? "sent" : "failed",
+        invite_sent_at: result.ok ? new Date().toISOString() : null,
+      })
+      .eq("id", guest.id);
+  }
 }
 
 export async function DELETE(req: NextRequest, { params }: Params) {

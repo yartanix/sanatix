@@ -2,8 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "@/i18n/routing";
+import type { InvitationTemplate } from "@/types";
 
-export default function CreatePartyForm({ isRTL }: { isRTL: boolean }) {
+export default function CreatePartyForm({
+  isRTL,
+  templates = [],
+}: {
+  isRTL: boolean;
+  templates?: InvitationTemplate[];
+}) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
@@ -13,6 +20,18 @@ export default function CreatePartyForm({ isRTL }: { isRTL: boolean }) {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Richer invitation config — closes the gap against single-purpose
+  // invitation apps (configurable question + entry code + direct
+  // WhatsApp/SMS delivery), without touching the plus-one stepper,
+  // which already exists on the RSVP form itself.
+  const [templateId, setTemplateId] = useState<string | null>(
+    templates.find((t) => !t.is_premium)?.id ?? null
+  );
+  const [allowPlusOnes, setAllowPlusOnes] = useState(true);
+  const [customQuestion, setCustomQuestion] = useState("");
+  const [requireEntryCode, setRequireEntryCode] = useState(false);
+  const [autoSendChannel, setAutoSendChannel] = useState<"none" | "whatsapp" | "sms">("none");
 
   const canSubmit = title.trim().length > 0 && date.length > 0 && !saving;
 
@@ -32,6 +51,11 @@ export default function CreatePartyForm({ isRTL }: { isRTL: boolean }) {
           locationName: locationName.trim() || undefined,
           locationAddress: locationAddress.trim() || undefined,
           notes: notes.trim() || undefined,
+          templateId: templateId ?? undefined,
+          allowPlusOnes,
+          customQuestion: customQuestion.trim() || undefined,
+          requireEntryCode,
+          autoSendChannel,
         }),
       });
       if (!res.ok) throw new Error("failed");
@@ -109,6 +133,105 @@ export default function CreatePartyForm({ isRTL }: { isRTL: boolean }) {
           rows={3}
           className={`${inputClass} resize-none`}
         />
+      </div>
+
+      {templates.length > 0 && (
+        <div>
+          <label className={labelClass}>{isRTL ? "تصميم الدعوة" : "Invitation design"}</label>
+          <div className="grid grid-cols-3 gap-2">
+            {templates.map((t) => {
+              const selected = templateId === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  disabled={t.is_premium}
+                  onClick={() => setTemplateId(t.id)}
+                  className={`relative rounded-xl border px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                    selected ? "border-brand-gold ring-2 ring-brand-gold/30" : "border-black/10"
+                  } ${t.is_premium ? "opacity-50 cursor-not-allowed" : "hover:bg-brand-sand"}`}
+                  style={{ color: t.accent_color }}
+                >
+                  {isRTL ? t.name_ar : t.name_en}
+                  {t.is_premium && (
+                    <span className="block mt-1 text-[10px] font-bold text-brand-ink/40">
+                      {isRTL ? "قريباً" : "Coming soon"}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <label className={labelClass}>{isRTL ? "سؤال إضافي للضيوف (اختياري)" : "A question to ask guests (optional)"}</label>
+        <input
+          type="text"
+          value={customQuestion}
+          onChange={(e) => setCustomQuestion(e.target.value)}
+          placeholder={isRTL ? "مثال: هل لديك حساسية من أي طعام؟" : "e.g. Any food allergies we should know?"}
+          className={inputClass}
+        />
+      </div>
+
+      <div className="flex items-center justify-between rounded-xl border border-black/10 px-4 py-3">
+        <span className="text-sm text-brand-midnight">{isRTL ? "السماح بإحضار مرافقين" : "Allow guests to bring plus-ones"}</span>
+        <input
+          type="checkbox"
+          checked={allowPlusOnes}
+          onChange={(e) => setAllowPlusOnes(e.target.checked)}
+          className="w-5 h-5 accent-brand-gold"
+        />
+      </div>
+
+      <div className="flex items-center justify-between rounded-xl border border-black/10 px-4 py-3">
+        <div>
+          <span className="block text-sm text-brand-midnight">{isRTL ? "طلب كود دخول عند الباب" : "Require an entry code at the door"}</span>
+          <span className="block text-xs text-brand-ink/45 mt-0.5">
+            {isRTL ? "سنولّد كوداً لك تلقائياً" : "We'll generate one for you automatically"}
+          </span>
+        </div>
+        <input
+          type="checkbox"
+          checked={requireEntryCode}
+          onChange={(e) => setRequireEntryCode(e.target.checked)}
+          className="w-5 h-5 accent-brand-gold"
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>{isRTL ? "إرسال الدعوات تلقائياً عبر" : "Auto-send invites via"}</label>
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              { key: "none", en: "Manual share", ar: "مشاركة يدوية" },
+              { key: "whatsapp", en: "WhatsApp", ar: "واتساب" },
+              { key: "sms", en: "SMS", ar: "رسالة نصية" },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setAutoSendChannel(opt.key)}
+              className={`rounded-xl border px-2 py-2.5 text-xs font-semibold transition-colors ${
+                autoSendChannel === opt.key
+                  ? "border-brand-gold bg-brand-sand text-brand-midnight"
+                  : "border-black/10 text-brand-ink/55 hover:bg-brand-sand"
+              }`}
+            >
+              {isRTL ? opt.ar : opt.en}
+            </button>
+          ))}
+        </div>
+        {autoSendChannel !== "none" && (
+          <p className="text-xs text-brand-ink/45 mt-2">
+            {isRTL
+              ? "سيتم الإرسال فقط للضيوف الذين أدخلت رقم هاتفهم"
+              : "Only sent to guests you give a phone number for — you can still share links manually for the rest."}
+          </p>
+        )}
       </div>
 
       {errorMsg && <p className="text-sm text-rose-600">{errorMsg}</p>}

@@ -5,6 +5,8 @@ import { getLocale } from "next-intl/server";
 import { CalendarDays, MapPin } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import GuestManager from "@/components/party/GuestManager";
+import PartyStats from "@/components/party/PartyStats";
+import DoorPassCard from "@/components/party/DoorPassCard";
 import { formatDateTime } from "@/lib/utils";
 import { SITE_URL } from "@/lib/constants";
 import type { Party, PartyGuest } from "@/types";
@@ -61,7 +63,13 @@ export default async function PartyDashboardPage({ params }: PageProps) {
           </div>
         )}
 
-        <div className="mt-8">
+        <div className="mt-8 space-y-6">
+          <PartyStats guests={guests} isRTL={isRTL} />
+          <DoorPassCard
+            doorPassUrl={`${SITE_URL}${locale === "en" ? "/en" : ""}/checkin/${typedParty.door_pass_token}`}
+            partyTitle={typedParty.title}
+            isRTL={isRTL}
+          />
           <GuestManager
             partyId={typedParty.id}
             partyTitle={typedParty.title}

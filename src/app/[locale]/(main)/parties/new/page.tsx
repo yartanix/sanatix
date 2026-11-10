@@ -15,6 +15,11 @@ export default async function NewPartyPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/${locale}/login?next=/${locale}/parties/new`);
 
+  const { data: templates } = await supabase
+    .from("invitation_templates")
+    .select("*")
+    .order("sort_order", { ascending: true });
+
   return (
     <div className="min-h-screen bg-brand-warm-white">
       <Navbar />
@@ -25,7 +30,7 @@ export default async function NewPartyPage() {
         <p className="text-sm text-brand-ink/55 mb-8">
           {isRTL ? "بعد الإنشاء، أضف الضيوف وشارك دعواتهم" : "After creating it, you'll add guests and share their invites"}
         </p>
-        <CreatePartyForm isRTL={isRTL} />
+        <CreatePartyForm isRTL={isRTL} templates={templates ?? []} />
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ export const rsvpTokenSchema = z.string().uuid();
 export const rsvpSubmitSchema = z.object({
   status: z.enum(["yes", "no", "maybe"]),
   guestCount: z.number().int().min(1).max(20).optional(),
+  customAnswer: z.string().max(500).optional(),
 });
 
 export const bookingItemSchema = z.object({

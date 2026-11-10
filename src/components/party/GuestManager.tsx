@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Share2, Copy, Check, Trash2, UserPlus, Contact, RefreshCw } from "lucide-react";
+import { Share2, Copy, Check, Trash2, UserPlus, Contact, RefreshCw, MessageCircle, BadgeCheck } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import type { PartyGuest, RsvpStatus } from "@/types";
 
 // Chrome on Android exposes navigator.contacts for picking real device
@@ -94,6 +95,23 @@ export default function GuestManager({
   async function removeGuest(id: string) {
     setGuests((prev) => prev.filter((g) => g.id !== id));
     await fetch(`/api/parties/${partyId}/guests?guestId=${id}`, { method: "DELETE" }).catch(() => {});
+  }
+
+  // The host already has full RLS access to their own party_guests rows
+  // (migration 011's "hosts manage their own party guests" policy), so a
+  // direct update from here needs no new API route — same pattern as the
+  // mobile app's addGuest/removeGuest, which also write straight to
+  // Supabase.
+  async function toggleCheckedIn(guest: PartyGuest) {
+    const nextValue = guest.checked_in_at ? null : new Date().toISOString();
+    setGuests((prev) =>
+      prev.map((g) => (g.id === guest.id ? { ...g, checked_in_at: nextValue, checked_in_via: nextValue ? "host" : null } : g))
+    );
+    const supabase = createClient();
+    await supabase
+      .from("party_guests")
+      .update({ checked_in_at: nextValue, checked_in_via: nextValue ? "host" : null })
+      .eq("id", guest.id);
   }
 
   const refreshStatuses = useCallback(async () => {
@@ -209,12 +227,48 @@ export default function GuestManager({
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-brand-midnight truncate">{guest.name}</p>
-                    <span className={`inline-block mt-1 text-[11px] font-semibold rounded-full px-2 py-0.5 ${label.className}`}>
-                      {isRTL ? label.ar : label.en}
-                      {guest.rsvp_status === "yes" && guest.guest_count > 1 ? ` · ${guest.guest_count}` : ""}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      <span className={`inline-block text-[11px] font-semibold rounded-full px-2 py-0.5 ${label.className}`}>
+                        {isRTL ? label.ar : label.en}
+                        {guest.rsvp_status === "yes" && guest.guest_count > 1 ? ` · ${guest.guest_count}` : ""}
+                      </span>
+                      {guest.invite_channel !== "none" && (
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 ${
+                            guest.invite_status === "sent"
+                              ? "bg-sky-50 text-sky-700"
+                              : guest.invite_status === "failed"
+                                ? "bg-rose-50 text-rose-700"
+                                : "bg-black/5 text-brand-ink/45"
+                          }`}
+                        >
+                          <MessageCircle size={10} />
+                          {guest.invite_channel === "whatsapp" ? "WhatsApp" : "SMS"}
+                          {guest.invite_status === "sent" ? (isRTL ? " · أُرسلت" : " · sent") : ""}
+                          {guest.invite_status === "failed" ? (isRTL ? " · فشلت" : " · failed") : ""}
+                        </span>
+                      )}
+                      {guest.checked_in_at && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 bg-emerald-50 text-emerald-700">
+                          <BadgeCheck size={10} />
+                          {isRTL ? "دخل" : "Checked in"}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="shrink-0 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleCheckedIn(guest)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                        guest.checked_in_at
+                          ? "text-emerald-600 hover:bg-emerald-50"
+                          : "text-brand-ink/35 hover:text-brand-gold hover:bg-brand-sand"
+                      }`}
+                      title={isRTL ? "تبديل تسجيل الدخول" : "Toggle checked-in"}
+                    >
+                      <BadgeCheck size={16} />
+                    </button>
                     <button
                       type="button"
                       onClick={() => shareInvite(guest)}
