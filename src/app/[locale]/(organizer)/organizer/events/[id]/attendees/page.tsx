@@ -3,6 +3,7 @@ import { getLocale } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { Link } from "@/i18n/routing";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
+import EventCheckinBox from "@/components/organizer/EventCheckinBox";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -48,6 +49,7 @@ export default async function AttendeesPage({ params }: PageProps) {
     currency: string;
     status: string;
     qr_code: string | null;
+    checked_in_at: string | null;
     created_at: string;
     profiles: { full_name: string | null; phone: string | null } | null;
     ticket_types: { name_ar: string; name_en: string } | null;
@@ -55,7 +57,7 @@ export default async function AttendeesPage({ params }: PageProps) {
 
   const { data: bookingsData } = await supabase
     .from("bookings")
-    .select("id, quantity, total_amount, currency, status, qr_code, created_at, profiles(full_name, phone), ticket_types(name_ar, name_en)")
+    .select("id, quantity, total_amount, currency, status, qr_code, checked_in_at, created_at, profiles(full_name, phone), ticket_types(name_ar, name_en)")
     .eq("event_id", id)
     .order("created_at", { ascending: false });
 
@@ -79,6 +81,8 @@ export default async function AttendeesPage({ params }: PageProps) {
         </p>
       </div>
 
+      <EventCheckinBox eventId={id} isRTL={isRTL} />
+
       {!bookings || bookings.length === 0 ? (
         <div className="bg-white rounded-2xl border border-black/5 p-12 text-center">
           <p className="text-brand-ink/60 text-sm">{isRTL ? "لا توجد حجوزات بعد" : "No bookings yet"}</p>
@@ -93,6 +97,7 @@ export default async function AttendeesPage({ params }: PageProps) {
                 <th className="text-start px-5 py-3 font-medium">{isRTL ? "العدد" : "Qty"}</th>
                 <th className="text-start px-5 py-3 font-medium hidden md:table-cell">{isRTL ? "المبلغ" : "Amount"}</th>
                 <th className="text-start px-5 py-3 font-medium">{isRTL ? "الحالة" : "Status"}</th>
+                <th className="text-start px-5 py-3 font-medium">{isRTL ? "الدخول" : "Checked in"}</th>
                 <th className="text-start px-5 py-3 font-medium hidden lg:table-cell">{isRTL ? "تاريخ الحجز" : "Booked"}</th>
               </tr>
             </thead>
@@ -114,6 +119,15 @@ export default async function AttendeesPage({ params }: PageProps) {
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_BADGE[b.status] ?? "bg-black/5 text-brand-ink/50"}`}>
                       {isRTL ? STATUS_LABEL[b.status]?.ar ?? b.status : STATUS_LABEL[b.status]?.en ?? b.status}
                     </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {b.checked_in_at ? (
+                      <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-emerald-500/10 text-emerald-600">
+                        {isRTL ? "تم" : "Checked in"}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-brand-ink/30">—</span>
+                    )}
                   </td>
                   <td className="px-5 py-3.5 text-brand-ink/40 text-xs hidden lg:table-cell">
                     {formatDateTime(b.created_at, isRTL ? "ar-SA" : "en-US")}
