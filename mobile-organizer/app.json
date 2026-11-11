@@ -57,7 +57,11 @@
     "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "4e3ba51b-1203-411b-9309-cacb3aa5352c"
       }
-    }
+    },
+    "owner": "yartanix"
   }
 }
