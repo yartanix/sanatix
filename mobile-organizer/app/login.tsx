@@ -28,6 +28,12 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Pressable
+        style={{ position: "absolute", top: 56, right: 20, zIndex: 1 }}
+        onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+      >
+        <Text style={{ color: colors.inkFaint, fontWeight: "600" }}>Close</Text>
+      </Pressable>
       <View style={{ padding: 24, justifyContent: "center", flex: 1 }}>
         <Text style={styles.h1}>Sanatix Organizer</Text>
         <Text style={[styles.subtle, { marginBottom: 24 }]}>

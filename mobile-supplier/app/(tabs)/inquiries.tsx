@@ -1,36 +1,37 @@
 import { useCallback, useState } from "react";
 import { View, Text, TextInput, Pressable, ActivityIndicator, FlatList } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { Send, Star } from "lucide-react-native";
-import { useAuth } from "@/lib/auth-context";
+import { Send } from "lucide-react-native";
+import { useAccessState } from "@/lib/access";
+import { AccessGate } from "@/components/AccessGate";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
-import type { Review } from "@/lib/types";
+import type { VendorInquiry } from "@/lib/types";
 
-export default function ReviewsScreen() {
-  const { session } = useAuth();
-  const [reviews, setReviews] = useState<Review[]>([]);
+export default function InquiriesScreen() {
+  const { status, profile } = useAccessState(["supplier", "admin"]);
+  const [inquiries, setInquiries] = useState<VendorInquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!session) return;
-    const { data: vendors } = await supabase.from("vendors").select("id").eq("owner_id", session.user.id);
+    if (status !== "ok" || !profile) return;
+    const { data: vendors } = await supabase.from("vendors").select("id").eq("owner_id", profile.id);
     const ids = (vendors ?? []).map((v) => v.id);
     if (ids.length === 0) {
-      setReviews([]);
+      setInquiries([]);
       setLoading(false);
       return;
     }
     const { data } = await supabase
-      .from("reviews")
-      .select("*, profiles(full_name)")
+      .from("vendor_inquiries")
+      .select("*")
       .in("vendor_id", ids)
       .order("created_at", { ascending: false });
-    setReviews((data ?? []) as unknown as Review[]);
+    setInquiries((data ?? []) as VendorInquiry[]);
     setLoading(false);
-  }, [session]);
+  }, [status, profile]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -38,12 +39,21 @@ export default function ReviewsScreen() {
     const text = (drafts[id] ?? "").trim();
     if (!text) return;
     setSending(id);
-    const { data } = await supabase.from("reviews").update({ vendor_response: text }).eq("id", id).select().single();
+    const { data } = await supabase
+      .from("vendor_inquiries")
+      .update({ vendor_response: text })
+      .eq("id", id)
+      .select()
+      .single();
     if (data) {
-      setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, ...(data as Review) } : r)));
+      setInquiries((prev) => prev.map((i) => (i.id === id ? (data as VendorInquiry) : i)));
       setDrafts((d) => ({ ...d, [id]: "" }));
     }
     setSending(null);
+  }
+
+  if (status !== "ok") {
+    return <AccessGate status={status} roleLabel="vendor" feature="your inquiries" />;
   }
 
   if (loading) {
@@ -57,21 +67,27 @@ export default function ReviewsScreen() {
   return (
     <FlatList
       style={styles.screen}
-      data={reviews}
-      keyExtractor={(r) => r.id}
+      data={inquiries}
+      keyExtractor={(i) => i.id}
       contentContainerStyle={{ padding: 20, gap: 12 }}
-      ListEmptyComponent={<Text style={[styles.subtle, { textAlign: "center", marginTop: 60 }]}>No reviews yet</Text>}
+      ListEmptyComponent={<Text style={[styles.subtle, { textAlign: "center", marginTop: 60 }]}>No inquiries yet</Text>}
       renderItem={({ item }) => (
         <View style={styles.card}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={{ fontWeight: "700", color: colors.ink }}>{item.profiles?.full_name ?? "A user"}</Text>
-            <View style={{ flexDirection: "row", gap: 2 }}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} size={12} color={i < item.rating ? colors.warning : colors.border} fill={i < item.rating ? colors.warning : "none"} />
-              ))}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
+            <Text style={{ fontWeight: "700", color: colors.ink }}>{item.name}</Text>
+            <View
+              style={{
+                paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+                backgroundColor: item.status === "new" ? `${colors.gold}22` : item.status === "responded" ? "#10B98114" : "#0000000D",
+              }}
+            >
+              <Text style={{ fontSize: 10, fontWeight: "700", color: item.status === "new" ? colors.gold : item.status === "responded" ? colors.success : colors.inkFaint }}>
+                {item.status.toUpperCase()}
+              </Text>
             </View>
           </View>
-          {item.comment_en && <Text style={{ color: colors.ink, marginTop: 6, fontSize: 14 }}>{item.comment_en}</Text>}
+          {item.phone && <Text style={styles.subtle}>{item.phone}</Text>}
+          <Text style={{ color: colors.ink, marginTop: 6, fontSize: 14 }}>{item.message}</Text>
 
           {item.vendor_response ? (
             <View style={{ marginTop: 8, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: `${colors.gold}55` }}>
@@ -82,7 +98,7 @@ export default function ReviewsScreen() {
             <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
               <TextInput
                 style={[styles.input, { flex: 1, paddingVertical: 9 }]}
-                placeholder="Respond to this review..."
+                placeholder="Write your response..."
                 placeholderTextColor={colors.inkFaint}
                 value={drafts[item.id] ?? ""}
                 onChangeText={(v) => setDrafts((d) => ({ ...d, [item.id]: v }))}

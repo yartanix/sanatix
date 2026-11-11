@@ -12,11 +12,8 @@ function RootLayout() {
     <AuthProvider>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerStyle: { backgroundColor: colors.midnight }, headerTintColor: colors.warmWhite }}>
-        <Stack.Screen name="index" options={{ title: "Sanatix Supplier" }} />
-        <Stack.Screen name="login" options={{ title: "Log in", headerShown: false }} />
-        <Stack.Screen name="profile" options={{ title: "Vendor Profile" }} />
-        <Stack.Screen name="inquiries" options={{ title: "Inquiries" }} />
-        <Stack.Screen name="reviews" options={{ title: "Reviews" }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ title: "Log in", headerShown: false, presentation: "modal" }} />
       </Stack>
     </AuthProvider>
   );
