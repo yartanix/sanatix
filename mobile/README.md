@@ -1,22 +1,47 @@
 # Sanatix Mobile (Expo / React Native)
 
-Cross-platform (iOS + Android) companion app for hosting a party and managing
-guests/RSVPs. It shares the same Supabase project — and therefore the same
-accounts and the same `parties` / `party_guests` tables (migration `011`) — as
-sanatix.net, so a host can start on the web and finish on the phone, or
-vice versa.
+Cross-platform (iOS + Android) app for **both participants and organizers** —
+the single consumer-facing Sanatix mobile app, alongside the separate
+`mobile-supplier/` app for vendors. There is no longer a third,
+organizer-only app: the standalone `mobile-organizer/` app's Events,
+Crowdfunding and Settings screens have been merged in here as additional
+tabs (see "App structure" below); `mobile-organizer/` is kept only for
+history and is not built or shipped.
+
+It shares the same Supabase project — and therefore the same accounts — as
+sanatix.net, so a host/organizer can start on the web and finish on the
+phone, or vice versa.
 
 Guests never need this app, or even a Sanatix account: each guest's RSVP
 link (`https://sanatix.net/rsvp/<token>`) opens a public web page that works
 on any phone.
 
+## App structure
+
+A bottom tab bar is the main shell for any signed-in account:
+
+- **My Parties** — open to every account (hosting a party isn't
+  organizer-exclusive). Create a party, manage guests/RSVPs.
+- **Events** and **Crowdfunding** — organizer tools (create/edit events,
+  ticket types, attendee check-in, crowdfunding campaigns). Open to anyone,
+  but a signed-in viewer whose `profiles.role` isn't `organizer`/`admin`
+  sees an in-place "not an organizer account" message instead of real data
+  (see `src/lib/access.ts` / `src/components/AccessGate.tsx`) rather than
+  the tab being hidden outright.
+- **Settings** — open to every account: name/phone, sign out.
+
+Registering in-app (`app/register.tsx`) lets someone pick **Customer** or
+**Organizer** when they sign up (mirrors the web register page's role
+picker, minus Supplier — suppliers use `mobile-supplier/`).
+
 ## What it does
 
-- Log in with an existing Sanatix account (sign-up isn't built into the app
-  yet — create an account on sanatix.net first).
+- Log in with an existing Sanatix account, or register directly in the app.
 - See your parties and each one's confirmed-guest count.
 - Create a party (title, date/time, location, notes).
 - Add guests manually, or pick them straight from your phone's contacts.
+- Organizer accounts: create/publish events, manage ticket types, check
+  attendees in, and run crowdfunding campaigns.
 - Share a guest's personal RSVP link through the OS share sheet — this is
   how WhatsApp, Instagram, Snapchat and TikTok are "integrated." None of
   those four platforms expose a public API for sending a DM to an arbitrary
@@ -58,11 +83,16 @@ address book.
 
 ## What this app needs from the database
 
-Migration `011_party_invitations_rsvp.sql` (web feature) plus migration
+Migration `011_party_invitations_rsvp.sql` (parties/RSVP) plus migration
 `012_push_notifications.sql` (adds the `push_tokens` table — see "Push
-notifications" below). The app talks to Supabase directly (same RLS
-policies — `host_id = auth.uid()` — as the web app), so there is no
-separate backend to deploy for the app itself.
+notifications" below). The Events/Crowdfunding tabs merged in from the
+retired `mobile-organizer/` app additionally need the events/ticketing,
+crowdfunding, and check-in migrations (`006` onward, plus
+`017_booking_checkin.sql`) already applied for the web app. The app talks
+to Supabase directly (same RLS policies as the web app — `host_id =
+auth.uid()` on `parties`, `organizer_id = auth.uid()` on `events`/
+`campaigns`), so there is no separate backend to deploy for the app
+itself.
 
 ## Push notifications
 
