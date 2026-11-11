@@ -3,26 +3,49 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { PartyPopper, ArrowLeft, ArrowRight } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import Navbar from "@/components/layout/Navbar";
+import OccasionStepForm from "@/components/party/OccasionStepForm";
 import PartyPlannerForm from "@/components/party/PartyPlannerForm";
-import VenueCard from "@/components/venues/VenueCard";
+import VenueAndLocationStep from "@/components/party/VenueAndLocationStep";
+import ReviewStep from "@/components/party/ReviewStep";
 import VendorCard from "@/components/vendors/VendorCard";
 import { PARTY_NEEDS, ageLabel, budgetLabel, needLabel } from "@/lib/party-planner";
 import type { Venue, Vendor } from "@/types";
 
 interface PageProps {
-  searchParams: Promise<{ age?: string; city?: string; budget?: string; needs?: string }>;
+  searchParams: Promise<{
+    title?: string;
+    date?: string;
+    time?: string;
+    age?: string;
+    city?: string;
+    budget?: string;
+    needs?: string;
+    step?: string;
+    venueId?: string;
+    locName?: string;
+    locAddr?: string;
+    lat?: string;
+    lng?: string;
+  }>;
 }
 
+// The "Plan your party" journey, in four steps, each its own URL state
+// (shareable/bookmarkable, back-button friendly) rather than client-only
+// wizard state:
+//   1. Occasion name + date   (no params yet)
+//   2. Age / city / budget / needs   (title + date set, no city yet)
+//   3. Venue or location, browsing matched venues/vendors   (city set, step != review)
+//   4. Review + Complete   (step=review) — creates the real party via
+//      the same POST /api/parties the standalone "New Party" form uses.
 export default async function PlanAPartyPage({ searchParams }: PageProps) {
-  const { age, city, budget, needs } = await searchParams;
+  const { title, date, time, age, city, budget, needs, step, venueId, locName, locAddr, lat, lng } = await searchParams;
   const locale = await getLocale();
   const t = await getTranslations();
   const isRTL = locale === "ar";
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
 
-  // No city yet = show the wizard. City is the one hard requirement since
-  // every query below is scoped to it.
-  if (!city) {
+  // ─── Step 1: occasion name + date ───────────────────────────────
+  if (!title || !date) {
     return (
       <div className="min-h-screen bg-brand-warm-white">
         <Navbar />
@@ -36,12 +59,36 @@ export default async function PlanAPartyPage({ searchParams }: PageProps) {
               {isRTL ? "خطط لحفلة طفلك المثالية" : "Plan your child's perfect party"}
             </h1>
             <p className="text-brand-ink/55 text-sm">
+              {isRTL ? "لنبدأ باسم المناسبة وتاريخها" : "Let's start with what you're celebrating, and when"}
+            </p>
+          </div>
+          <OccasionStepForm isRTL={isRTL} />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Step 2: age / city / budget / needs ───────────────────────
+  if (!city) {
+    return (
+      <div className="min-h-screen bg-brand-warm-white">
+        <Navbar />
+        <div className="max-w-2xl mx-auto px-6 py-12">
+          <div className="text-center mb-8">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-[#8A5E12] bg-brand-gold/10 border border-brand-gold/30 rounded-full px-4 py-2 mb-5">
+              <PartyPopper size={13} />
+              {title}
+            </span>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-midnight mb-3">
+              {isRTL ? "أخبرنا المزيد" : "Tell us a bit more"}
+            </h1>
+            <p className="text-brand-ink/55 text-sm">
               {isRTL
                 ? "أجب عن بضعة أسئلة ونقترح عليك أفضل القاعات والموردين"
                 : "Answer a few quick questions and we'll match you with the right venues and vendors"}
             </p>
           </div>
-          <PartyPlannerForm isRTL={isRTL} />
+          <PartyPlannerForm isRTL={isRTL} title={title} date={date} time={time ?? "17:00"} />
         </div>
       </div>
     );
@@ -56,14 +103,7 @@ export default async function PlanAPartyPage({ searchParams }: PageProps) {
   const supabase = await createClient();
 
   const [{ data: venueRows }, vendorResults] = await Promise.all([
-    wantsVenue
-      ? supabase
-          .from("venues")
-          .select("*")
-          .eq("city", city)
-          .eq("is_published", true)
-          .limit(20)
-      : Promise.resolve({ data: [] as Venue[] }),
+    supabase.from("venues").select("*").eq("city", city).eq("is_published", true).limit(20),
     Promise.all(
       vendorCategories.map((category) =>
         supabase
@@ -87,7 +127,73 @@ export default async function PlanAPartyPage({ searchParams }: PageProps) {
     .sort((a, b) => (a.venue_type === "kids_play_center" ? -1 : 0) - (b.venue_type === "kids_play_center" ? -1 : 0))
     .slice(0, 6);
 
-  const editHref = `/plan-a-party`;
+  const preferencesParams = { title, date, time: time ?? "17:00" };
+  const venueStepParams = { title, date, time: time ?? "17:00", age: age ?? "", city, budget: budget ?? "mid", needs: needs ?? "" };
+
+  // ─── Step 4: review + complete ─────────────────────────────────
+  if (step === "review") {
+    let selectedVenue: Venue | null = null;
+    if (venueId) {
+      const { data } = await supabase.from("venues").select("*").eq("id", venueId).maybeSingle();
+      selectedVenue = (data as Venue) ?? null;
+    }
+
+    const startsAt = new Date(`${date}T${time || "17:00"}:00`).toISOString();
+    const dateLabel = new Date(startsAt).toLocaleString(isRTL ? "ar-SA" : "en-US", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    const needLabels = selectedNeeds.map((k) => needLabel(k, isRTL));
+    const venueName = selectedVenue ? (isRTL ? selectedVenue.name_ar : selectedVenue.name_en) : null;
+    const customLocLabel = !selectedVenue && (locName || locAddr) ? [locName, locAddr].filter(Boolean).join(" · ") : null;
+
+    const notesParts: string[] = [];
+    if (age) notesParts.push(`${isRTL ? "العمر" : "Age"}: ${ageLabel(age, isRTL)}`);
+    notesParts.push(`${isRTL ? "الميزانية" : "Budget"}: ${budgetLabel(budget ?? "mid", isRTL)}`);
+    if (needLabels.length > 0) notesParts.push(`${isRTL ? "الاحتياجات" : "Needs"}: ${needLabels.join(", ")}`);
+
+    return (
+      <div className="min-h-screen bg-brand-warm-white">
+        <Navbar />
+        <div className="px-6 py-12">
+          <ReviewStep
+            isRTL={isRTL}
+            summary={{
+              title,
+              dateLabel,
+              cityLabel: city,
+              ageLabel: age ? ageLabel(age, isRTL) : "—",
+              budgetLabel: budgetLabel(budget ?? "mid", isRTL),
+              needLabels,
+              venueLabel: venueName ? `${venueName} (${selectedVenue?.city})` : null,
+              locationLabel: customLocLabel,
+            }}
+            payload={{
+              title,
+              startsAt,
+              locationName: venueName ?? locName ?? null,
+              locationAddress: selectedVenue?.address ?? locAddr ?? null,
+              lat: selectedVenue?.lat ?? (lat ? Number(lat) : null),
+              lng: selectedVenue?.lng ?? (lng ? Number(lng) : null),
+              notes: notesParts.join(" · "),
+            }}
+            editHrefs={{
+              occasion: `/plan-a-party`,
+              preferences: `/plan-a-party?${new URLSearchParams(preferencesParams).toString()}`,
+              venue: `/plan-a-party?${new URLSearchParams(venueStepParams).toString()}`,
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Step 3: venue / location, browsing matched vendors ─────────
+  const editHref = `/plan-a-party?${new URLSearchParams(preferencesParams).toString()}`;
 
   return (
     <div className="min-h-screen bg-brand-warm-white">
@@ -110,24 +216,7 @@ export default async function PlanAPartyPage({ searchParams }: PageProps) {
           </p>
         </div>
 
-        {wantsVenue && (
-          <section className="mb-12">
-            <h2 className="text-lg font-medium text-brand-midnight mb-4">
-              {needLabel("venue", isRTL)}
-            </h2>
-            {venues.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-black/5 p-8 text-center text-sm text-brand-ink/50">
-                {isRTL ? `لا توجد قاعات منشورة في ${city} بعد` : `No published venues in ${city} yet`}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {venues.map((v) => (
-                  <VenueCard key={v.id} venue={v} locale={locale} t={t} />
-                ))}
-              </div>
-            )}
-          </section>
-        )}
+        <VenueAndLocationStep isRTL={isRTL} venues={venues} showVenues={wantsVenue} baseParams={venueStepParams} />
 
         {vendorResults.map(({ category, vendors }) => (
           <section key={category} className="mb-12">
@@ -148,14 +237,9 @@ export default async function PlanAPartyPage({ searchParams }: PageProps) {
           </section>
         ))}
 
-        {!wantsVenue && vendorResults.length === 0 && (
-          <div className="bg-white rounded-2xl border border-black/5 p-12 text-center">
-            <p className="text-brand-ink/50 text-sm mb-3">
-              {isRTL ? "لم تختر أي احتياجات للحفلة" : "You didn't select anything you need for the party"}
-            </p>
-            <Link href={editHref} className="text-sm text-brand-gold hover:underline font-medium">
-              {isRTL ? "عدّل البحث ←" : "Edit your search →"}
-            </Link>
+        {vendorResults.length === 0 && (
+          <div className="bg-white rounded-2xl border border-black/5 p-8 text-center text-sm text-brand-ink/50 mb-12">
+            {isRTL ? "لم تختر أي موردين — لا بأس، يمكنك المتابعة إلى المراجعة أعلاه" : "You didn't pick any vendor needs — that's fine, use \"Continue to review\" above whenever you're ready"}
           </div>
         )}
       </div>

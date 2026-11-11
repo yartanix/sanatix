@@ -6,7 +6,20 @@ import { PartyPopper } from "lucide-react";
 import { ALL_SWEEP_CITIES } from "@/lib/constants";
 import { AGE_RANGES, BUDGET_LEVELS, PARTY_NEEDS } from "@/lib/party-planner";
 
-export default function PartyPlannerForm({ isRTL }: { isRTL: boolean }) {
+export default function PartyPlannerForm({
+  isRTL,
+  title,
+  date,
+  time,
+}: {
+  isRTL: boolean;
+  // Carried forward from step 1 (the occasion name/date) so they're not
+  // lost — this step only adds to the journey's query params, it never
+  // starts a new one.
+  title: string;
+  date: string;
+  time: string;
+}) {
   const router = useRouter();
   const [age, setAge] = useState<string>("5_7");
   const [city, setCity] = useState<string>("");
@@ -23,7 +36,7 @@ export default function PartyPlannerForm({ isRTL }: { isRTL: boolean }) {
 
   function submit() {
     if (!city) return;
-    const params = new URLSearchParams({ age, city, budget, needs: Array.from(needs).join(",") });
+    const params = new URLSearchParams({ title, date, time, age, city, budget, needs: Array.from(needs).join(",") });
     router.push(`/plan-a-party?${params.toString()}`);
   }
 
