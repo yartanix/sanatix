@@ -40,7 +40,7 @@ export default async function DashboardPage() {
   if (!user) redirect(`/${locale}/login?next=/${locale}/dashboard`);
 
   const [{ data: profile }, { data: bookingsData }, { count: reviewCount }, { data: trendingData }] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+    supabase.from("profiles").select("full_name, role").eq("id", user.id).single(),
     supabase
       .from("bookings")
       .select("id, status, total_amount, currency, events(id, title_ar, title_en, starts_at, venue_city, cover_image)")
@@ -81,6 +81,9 @@ export default async function DashboardPage() {
     { label_ar: "استكشف الفعاليات", label_en: "Browse Events", href: "/events" as const, icon: Calendar, primary: false },
     { label_ar: "الفعاليات المحفوظة", label_en: "Saved Events", href: "/favorites" as const, icon: Heart, primary: false },
     { label_ar: "ابحث عن موردين", label_en: "Find Vendors", href: "/vendors" as const, icon: Store, primary: false },
+    ...(profile?.role === "supplier" || profile?.role === "admin"
+      ? [{ label_ar: "لوحة المورد", label_en: "Supplier Hub", href: "/vendor" as const, icon: Store, primary: true }]
+      : []),
     { label_ar: "لوحة المنظم", label_en: "Organizer Hub", href: "/organizer" as const, icon: Plus, primary: true },
   ];
 

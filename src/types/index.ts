@@ -122,7 +122,26 @@ export interface Review {
   comment_ar: string | null;
   comment_en: string | null;
   created_at: string;
+  vendor_response: string | null;
+  vendor_response_at: string | null;
   profiles?: { full_name: string | null; avatar_url: string | null } | null;
+}
+
+export type VendorInquiryStatus = "new" | "responded" | "closed";
+
+export interface VendorInquiry {
+  id: string;
+  vendor_id: string;
+  user_id: string | null;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  event_date: string | null;
+  message: string;
+  status: VendorInquiryStatus;
+  vendor_response: string | null;
+  vendor_response_at: string | null;
+  created_at: string;
 }
 
 export interface CrowdfundingCampaign {

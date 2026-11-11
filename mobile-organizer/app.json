@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "Sanatix Organizer",
+    "slug": "sanatix-organizer",
+    "scheme": "sanatix-organizer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0F0F14"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "net.sanatix.organizer",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "net.sanatix.organizer",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F0F14"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-updates",
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#C8973A"
+        }
+      ],
+      "./plugins/withPodfilePostInstall",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25"
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}

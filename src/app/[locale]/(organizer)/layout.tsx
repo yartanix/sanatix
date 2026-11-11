@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import {
-  LayoutDashboard, CalendarDays, Settings, LogOut, Zap,
+  LayoutDashboard, CalendarDays, Settings, LogOut, Zap, HeartHandshake,
 } from "lucide-react";
 
 const nav = [
-  { href: "/organizer",          label_ar: "لوحة التحكم",  label_en: "Dashboard",  Icon: LayoutDashboard },
-  { href: "/organizer/events",   label_ar: "الفعاليات",    label_en: "Events",     Icon: CalendarDays   },
-  { href: "/organizer/settings", label_ar: "الإعدادات",    label_en: "Settings",   Icon: Settings       },
+  { href: "/organizer",            label_ar: "لوحة التحكم",   label_en: "Dashboard",     Icon: LayoutDashboard },
+  { href: "/organizer/events",     label_ar: "الفعاليات",     label_en: "Events",        Icon: CalendarDays    },
+  { href: "/organizer/campaigns",  label_ar: "حملات التمويل", label_en: "Crowdfunding",  Icon: HeartHandshake  },
+  { href: "/organizer/settings",   label_ar: "الإعدادات",     label_en: "Settings",      Icon: Settings        },
 ];
 
 type NavItem = { href: string; label_ar: string; label_en: string; Icon: React.ElementType };

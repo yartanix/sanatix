@@ -6,6 +6,7 @@ import { MapPin, Globe, MessageCircle, Star, ArrowLeft, ArrowRight } from "lucid
 import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import Navbar from "@/components/layout/Navbar";
 import VendorCard from "@/components/vendors/VendorCard";
+import VendorInquiryForm from "@/components/vendors/VendorInquiryForm";
 import { Link } from "@/i18n/routing";
 import { VENDOR_CATEGORY_LABEL, SITE_URL } from "@/lib/constants";
 import { buildMetadata, trimDescription, jsonLd } from "@/lib/seo";
@@ -198,6 +199,11 @@ export default async function VendorPage({ params }: VendorPageProps) {
                           </div>
                         </div>
                         {comment && <p className="text-sm text-brand-ink/65 leading-relaxed">{comment}</p>}
+                        {review.vendor_response && (
+                          <div className="mt-2.5 pl-3 border-l-2 border-brand-gold/30 text-xs text-brand-ink/60">
+                            <span className="font-medium text-brand-gold">{name}:</span> {review.vendor_response}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -244,6 +250,8 @@ export default async function VendorPage({ params }: VendorPageProps) {
                 )}
               </div>
             </div>
+
+            <VendorInquiryForm vendorId={vendor.id} isRTL={isRTL} />
 
             {vendor.source_url && (
               <p className="text-[11px] text-brand-ink/40 px-1">
