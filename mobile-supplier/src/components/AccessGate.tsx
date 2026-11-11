@@ -32,6 +32,11 @@ export function AccessGate({ status, roleLabel, feature }: { status: AccessStatu
         <Pressable style={styles.goldButton} onPress={() => router.push("/login")}>
           <Text style={styles.goldButtonText}>Sign in</Text>
         </Pressable>
+        <Pressable style={{ marginTop: 14 }} onPress={() => router.push("/register")}>
+          <Text style={{ color: colors.inkFaint, fontSize: 13 }}>
+            New to Sanatix? <Text style={{ color: colors.gold, fontWeight: "600" }}>Register now</Text>
+          </Text>
+        </Pressable>
       </View>
     );
   }

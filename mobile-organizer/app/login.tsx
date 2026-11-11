@@ -67,6 +67,12 @@ export default function LoginScreen() {
         >
           {loading ? <ActivityIndicator color={colors.midnight} /> : <Text style={styles.goldButtonText}>Log in</Text>}
         </Pressable>
+
+        <Pressable style={{ marginTop: 18, alignItems: "center" }} onPress={() => router.push("/register")}>
+          <Text style={{ color: colors.inkFaint, fontSize: 13 }}>
+            New to Sanatix? <Text style={{ color: colors.gold, fontWeight: "600" }}>Register now</Text>
+          </Text>
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );

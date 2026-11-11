@@ -14,6 +14,7 @@ function RootLayout() {
       <Stack screenOptions={{ headerStyle: { backgroundColor: colors.midnight }, headerTintColor: colors.warmWhite }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ title: "Log in", headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="register" options={{ title: "Register", headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="events/new" options={{ title: "New Event" }} />
         <Stack.Screen name="events/[id]/index" options={{ title: "Edit Event" }} />
         <Stack.Screen name="events/[id]/attendees" options={{ title: "Attendees" }} />
