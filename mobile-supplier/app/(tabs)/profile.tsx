@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, Pressable, ActivityIndicator, ScrollView } from "react-native";
 import { useAuth } from "@/lib/auth-context";
+import { useAccessState } from "@/lib/access";
+import { AccessGate } from "@/components/AccessGate";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
 import type { Vendor } from "@/lib/types";
@@ -8,7 +10,8 @@ import type { Vendor } from "@/lib/types";
 const label = { fontSize: 13, fontWeight: "600" as const, color: colors.ink, marginTop: 16, marginBottom: 6 };
 
 export default function VendorProfileScreen() {
-  const { session } = useAuth();
+  const { status, profile } = useAccessState(["supplier", "admin"]);
+  const { signOut } = useAuth();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [nameEn, setNameEn] = useState("");
   const [nameAr, setNameAr] = useState("");
@@ -20,11 +23,11 @@ export default function VendorProfileScreen() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (!session) return;
+    if (status !== "ok" || !profile) return;
     supabase
       .from("vendors")
       .select("*")
-      .eq("owner_id", session.user.id)
+      .eq("owner_id", profile.id)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle()
@@ -40,7 +43,7 @@ export default function VendorProfileScreen() {
         }
         setLoading(false);
       });
-  }, [session]);
+  }, [status, profile]);
 
   async function save() {
     if (!vendor) return;
@@ -54,6 +57,10 @@ export default function VendorProfileScreen() {
     setSaved(true);
   }
 
+  if (status !== "ok") {
+    return <AccessGate status={status} roleLabel="vendor" feature="your vendor profile" />;
+  }
+
   if (loading) {
     return (
       <View style={[styles.screen, { alignItems: "center", justifyContent: "center" }]}>
@@ -65,7 +72,10 @@ export default function VendorProfileScreen() {
   if (!vendor) {
     return (
       <View style={[styles.screen, { alignItems: "center", justifyContent: "center", padding: 24 }]}>
-        <Text style={styles.subtle}>No vendor profile linked to your account.</Text>
+        <Text style={[styles.subtle, { marginBottom: 20, textAlign: "center" }]}>No vendor profile linked to your account.</Text>
+        <Pressable style={styles.outlineButton} onPress={signOut}>
+          <Text style={styles.outlineButtonText}>Sign out</Text>
+        </Pressable>
       </View>
     );
   }
@@ -89,6 +99,10 @@ export default function VendorProfileScreen() {
 
       <Pressable style={[styles.goldButton, { marginTop: 20 }]} onPress={save} disabled={saving}>
         {saving ? <ActivityIndicator color={colors.midnight} /> : <Text style={styles.goldButtonText}>{saved ? "Saved" : "Save"}</Text>}
+      </Pressable>
+
+      <Pressable style={[styles.outlineButton, { marginTop: 32 }]} onPress={signOut}>
+        <Text style={styles.outlineButtonText}>Sign out</Text>
       </Pressable>
     </ScrollView>
   );

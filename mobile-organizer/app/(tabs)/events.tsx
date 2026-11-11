@@ -2,7 +2,8 @@ import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Plus } from "lucide-react-native";
-import { useAuth } from "@/lib/auth-context";
+import { useAccessState } from "@/lib/access";
+import { AccessGate } from "@/components/AccessGate";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
 import type { SanatixEvent } from "@/lib/types";
@@ -15,26 +16,30 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function EventsList() {
-  const { session } = useAuth();
+  const { status, profile } = useAccessState(["organizer", "admin"]);
   const [events, setEvents] = useState<SanatixEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!session) return;
+    if (status !== "ok" || !profile) return;
     const { data } = await supabase
       .from("events")
       .select("*")
-      .eq("organizer_id", session.user.id)
+      .eq("organizer_id", profile.id)
       .order("created_at", { ascending: false });
     setEvents((data ?? []) as SanatixEvent[]);
     setLoading(false);
-  }, [session]);
+  }, [status, profile]);
 
   useFocusEffect(
     useCallback(() => {
       load();
     }, [load])
   );
+
+  if (status !== "ok") {
+    return <AccessGate status={status} roleLabel="organizer" feature="your events" />;
+  }
 
   if (loading) {
     return (

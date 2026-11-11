@@ -2,28 +2,33 @@ import { useCallback, useState } from "react";
 import { View, Text, FlatList, Pressable, ActivityIndicator } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Plus } from "lucide-react-native";
-import { useAuth } from "@/lib/auth-context";
+import { useAccessState } from "@/lib/access";
+import { AccessGate } from "@/components/AccessGate";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
 import type { CrowdfundingCampaign } from "@/lib/types";
 
 export default function CampaignsList() {
-  const { session } = useAuth();
+  const { status, profile } = useAccessState(["organizer", "admin"]);
   const [campaigns, setCampaigns] = useState<CrowdfundingCampaign[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!session) return;
+    if (status !== "ok" || !profile) return;
     const { data } = await supabase
       .from("campaigns")
       .select("*")
-      .eq("organizer_id", session.user.id)
+      .eq("organizer_id", profile.id)
       .order("created_at", { ascending: false });
     setCampaigns((data ?? []) as CrowdfundingCampaign[]);
     setLoading(false);
-  }, [session]);
+  }, [status, profile]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  if (status !== "ok") {
+    return <AccessGate status={status} roleLabel="organizer" feature="your crowdfunding campaigns" />;
+  }
 
   if (loading) {
     return (

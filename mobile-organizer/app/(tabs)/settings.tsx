@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, Pressable, ActivityIndicator, ScrollView } from "react-native";
-import { router } from "expo-router";
 import { useAuth } from "@/lib/auth-context";
+import { useAccessState } from "@/lib/access";
+import { AccessGate } from "@/components/AccessGate";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
 
 const label = { fontSize: 13, fontWeight: "600" as const, color: colors.ink, marginTop: 16, marginBottom: 6 };
 
 export default function SettingsScreen() {
-  const { session, signOut } = useAuth();
+  const { status, session } = useAccessState(["organizer", "admin"]);
+  const { signOut } = useAuth();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!session) return;
+    if (status !== "ok" || !session) return;
     supabase
       .from("profiles")
       .select("full_name, phone")
@@ -28,7 +30,7 @@ export default function SettingsScreen() {
         }
         setLoading(false);
       });
-  }, [session]);
+  }, [status, session]);
 
   async function save() {
     if (!session) return;
@@ -37,9 +39,12 @@ export default function SettingsScreen() {
     setSaving(false);
   }
 
-  async function handleSignOut() {
-    await signOut();
-    router.replace("/login");
+  // Signed-out and wrong-role viewers still see the tab bar and this
+  // screen's chrome; AccessGate's wrong-role state already offers
+  // "Sign out" so there's always a way out of a mismatched account
+  // without needing a separate dedicated flow here.
+  if (status !== "ok") {
+    return <AccessGate status={status} roleLabel="organizer" />;
   }
 
   if (loading) {
@@ -61,7 +66,7 @@ export default function SettingsScreen() {
         {saving ? <ActivityIndicator color={colors.midnight} /> : <Text style={styles.goldButtonText}>Save</Text>}
       </Pressable>
 
-      <Pressable style={[styles.outlineButton, { marginTop: 32 }]} onPress={handleSignOut}>
+      <Pressable style={[styles.outlineButton, { marginTop: 32 }]} onPress={signOut}>
         <Text style={styles.outlineButtonText}>Sign out</Text>
       </Pressable>
     </ScrollView>
