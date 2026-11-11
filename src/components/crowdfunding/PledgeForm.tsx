@@ -82,12 +82,20 @@ export default function PledgeForm({
         <p className="text-sm text-brand-ink/60 mb-3">
           {isRTL ? "سجّل الدخول لدعم هذه الحملة" : "Sign in to back this campaign"}
         </p>
-        <a
-          href={`/login?next=${encodeURIComponent(pathname)}`}
-          className="inline-block px-5 py-2.5 rounded-xl bg-brand-midnight text-white text-sm font-medium hover:bg-brand-ink transition-colors"
-        >
-          {isRTL ? "تسجيل الدخول" : "Sign in"}
-        </a>
+        <div className="flex items-center justify-center gap-2.5">
+          <a
+            href={`/login?next=${encodeURIComponent(pathname)}`}
+            className="inline-block px-5 py-2.5 rounded-xl bg-brand-midnight text-white text-sm font-medium hover:bg-brand-ink transition-colors"
+          >
+            {isRTL ? "تسجيل الدخول" : "Sign in"}
+          </a>
+          <a
+            href={`/register?next=${encodeURIComponent(pathname)}`}
+            className="inline-block px-5 py-2.5 rounded-xl border border-black/10 text-brand-midnight text-sm font-medium hover:bg-brand-sand transition-colors"
+          >
+            {isRTL ? "تسجيل الآن" : "Register now"}
+          </a>
+        </div>
       </div>
     );
   }

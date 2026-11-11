@@ -80,6 +80,11 @@ export default function Dashboard() {
           <LogIn size={16} color={colors.midnight} />
           <Text style={styles.goldButtonText}>Sign in to your organizer account</Text>
         </Pressable>
+        <Pressable style={{ marginTop: 14, alignItems: "center" }} onPress={() => router.push("/register")}>
+          <Text style={{ color: colors.inkFaint, fontSize: 13 }}>
+            New to Sanatix? <Text style={{ color: colors.gold, fontWeight: "600" }}>Register now</Text>
+          </Text>
+        </Pressable>
       </ScrollView>
     );
   }
