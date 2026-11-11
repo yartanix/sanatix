@@ -64,10 +64,11 @@ export default function LoginScreen() {
           {loading ? <ActivityIndicator color={colors.midnight} /> : <Text style={styles.goldButtonText}>Log in</Text>}
         </Pressable>
 
-        <Text style={[styles.subtle, { textAlign: "center", marginTop: 20 }]}>
-          Don&apos;t have an account? Sign up at sanatix.net — account creation isn&apos;t built into this
-          app yet.
-        </Text>
+        <Pressable style={{ marginTop: 20, alignItems: "center" }} onPress={() => router.push("/register")}>
+          <Text style={{ color: colors.inkFaint, fontSize: 13 }}>
+            Don&apos;t have an account? <Text style={{ color: colors.gold, fontWeight: "600" }}>Sign up</Text>
+          </Text>
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
