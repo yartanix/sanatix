@@ -51,8 +51,17 @@ export default function Navbar() {
     { href: "/venues",       label: t("nav.venues") },
     { href: "/vendors",      label: t("nav.vendors") },
     { href: "/organizers",   label: t("nav.organizers") },
-    { href: "/crowdfunding", label: t("nav.crowdfunding") },
+    // Crowdfunding isn't active yet (no live campaigns/payment flow) —
+    // flagged with a "Soon" badge rather than hidden, so the nav still
+    // shows the full scope of the product.
+    { href: "/crowdfunding", label: t("nav.crowdfunding"), soon: true },
   ];
+
+  const soonBadge = (
+    <span className="text-[9px] font-bold uppercase tracking-wider text-brand-gold border border-brand-gold/40 rounded-full px-1.5 py-[1px] leading-none shrink-0">
+      {isRTL ? "قريباً" : "Soon"}
+    </span>
+  );
 
   return (
     <nav className="sticky top-0 z-50 bg-brand-midnight/80 backdrop-blur-xl border-b border-white/[0.08]">
@@ -82,8 +91,9 @@ export default function Navbar() {
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-7 text-sm text-brand-warm-white/65">
           {navLinks.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-brand-warm-white transition-colors">
+            <Link key={l.href} href={l.href} className="flex items-center gap-1.5 hover:text-brand-warm-white transition-colors">
               {l.label}
+              {l.soon && soonBadge}
             </Link>
           ))}
         </div>
@@ -167,10 +177,11 @@ export default function Navbar() {
             <Link
               key={l.href}
               href={l.href}
-              className="block text-sm text-brand-warm-white/75 hover:text-brand-warm-white"
+              className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white"
               onClick={() => setMenuOpen(false)}
             >
               {l.label}
+              {l.soon && soonBadge}
             </Link>
           ))}
           <div className="pt-2 flex items-center gap-3 border-t border-white/[0.08]">
