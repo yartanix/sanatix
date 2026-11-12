@@ -31,7 +31,15 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="campaigns"
-        options={{ title: "Crowdfunding", tabBarIcon: ({ color, size }) => <HeartHandshake color={color} size={size} /> }}
+        options={{
+          title: "Crowdfunding",
+          // Crowdfunding isn't live yet (no payment gateway wired in) —
+          // flagged with a badge rather than hidden, so organizers still
+          // see the tab exists.
+          tabBarBadge: "Soon",
+          tabBarBadgeStyle: { backgroundColor: colors.gold, color: colors.midnight, fontSize: 9 },
+          tabBarIcon: ({ color, size }) => <HeartHandshake color={color} size={size} />,
+        }}
       />
       <Tabs.Screen
         name="settings"
