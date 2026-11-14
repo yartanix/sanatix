@@ -96,32 +96,50 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="Full name"
+          accessibilityLabel="Full name"
           placeholderTextColor={colors.inkFaint}
+          autoComplete="name"
+          textContentType="name"
+          returnKeyType="next"
           value={fullName}
           onChangeText={setFullName}
         />
         <TextInput
           style={[styles.input, { marginTop: 10 }]}
           placeholder="Email"
+          accessibilityLabel="Email"
           placeholderTextColor={colors.inkFaint}
           autoCapitalize="none"
+          autoCorrect={false}
           keyboardType="email-address"
+          autoComplete="username"
+          textContentType="username"
+          returnKeyType="next"
           value={email}
           onChangeText={setEmail}
         />
         <TextInput
           style={[styles.input, { marginTop: 10 }]}
           placeholder="Phone (optional)"
+          accessibilityLabel="Phone, optional"
           placeholderTextColor={colors.inkFaint}
           keyboardType="phone-pad"
+          autoComplete="tel"
+          textContentType="telephoneNumber"
           value={phone}
           onChangeText={setPhone}
         />
         <TextInput
           style={[styles.input, { marginTop: 10 }]}
           placeholder="Password (min 8 characters)"
+          accessibilityLabel="Password, minimum 8 characters"
           placeholderTextColor={colors.inkFaint}
           secureTextEntry
+          // "new-password" makes the OS offer a generated strong password
+          // instead of filling an existing one.
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="done"
           value={password}
           onChangeText={setPassword}
         />

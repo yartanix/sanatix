@@ -39,17 +39,28 @@ export default function LoginScreen() {
         <TextInput
           style={styles.input}
           placeholder="Email"
+          accessibilityLabel="Email"
           placeholderTextColor={colors.inkFaint}
           autoCapitalize="none"
+          autoCorrect={false}
           keyboardType="email-address"
+          // "username", not "email": that's the value password managers
+          // pair with a saved password.
+          autoComplete="username"
+          textContentType="username"
+          returnKeyType="next"
           value={email}
           onChangeText={setEmail}
         />
         <TextInput
           style={[styles.input, { marginTop: 10 }]}
           placeholder="Password"
+          accessibilityLabel="Password"
           placeholderTextColor={colors.inkFaint}
           secureTextEntry
+          autoComplete="current-password"
+          textContentType="password"
+          returnKeyType="done"
           value={password}
           onChangeText={setPassword}
         />
