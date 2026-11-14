@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, TextInput, Pressable, ActivityIndicator, ScrollView, Alert } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
@@ -19,6 +19,7 @@ export default function SettingsScreen() {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (authLoading || !session) {
@@ -44,6 +45,41 @@ export default function SettingsScreen() {
     setSaving(true);
     await supabase.from("profiles").update({ full_name: fullName.trim() || null, phone: phone.trim() || null }).eq("id", session.user.id);
     setSaving(false);
+  }
+
+  // In-app account deletion — required by both stores for any app that
+  // lets people create an account (App Store Review Guideline 5.1.1(v),
+  // Google Play's account-deletion policy). delete_my_account() only ever
+  // deletes the caller's own account (see supabase/migrations/020).
+  async function deleteAccount() {
+    setDeleting(true);
+    const { error } = await supabase.rpc("delete_my_account");
+    if (error) {
+      setDeleting(false);
+      Alert.alert(
+        "Couldn't delete account",
+        error.message.includes("ACCOUNT_HAS_ACTIVE_COMMITMENTS")
+          ? "Other people still hold bookings or contributions on your events or campaigns. Cancel those first, or email support@sanatix.net and we'll help."
+          : "Something went wrong. Please try again, or email support@sanatix.net.",
+      );
+      return;
+    }
+    // The server-side session died with the account; this just clears the
+    // locally stored one so the app returns to the signed-out state.
+    await signOut().catch(() => {});
+    setDeleting(false);
+    router.replace("/login");
+  }
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      "Delete account?",
+      "This permanently deletes your Sanatix account and everything in it — your parties and guest lists, bookings, reviews, and any events or campaigns you created. This can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete account", style: "destructive", onPress: deleteAccount },
+      ],
+    );
   }
 
   if (authLoading || loading) {
@@ -87,6 +123,20 @@ export default function SettingsScreen() {
         }}
       >
         <Text style={styles.outlineButtonText}>Sign out</Text>
+      </Pressable>
+
+      <Pressable
+        style={[styles.outlineButton, { marginTop: 12, borderColor: colors.danger }, deleting && styles.disabled]}
+        onPress={confirmDeleteAccount}
+        disabled={deleting}
+        accessibilityRole="button"
+        accessibilityLabel="Delete account"
+      >
+        {deleting ? (
+          <ActivityIndicator color={colors.danger} />
+        ) : (
+          <Text style={[styles.outlineButtonText, { color: colors.danger }]}>Delete account</Text>
+        )}
       </Pressable>
     </ScrollView>
   );
