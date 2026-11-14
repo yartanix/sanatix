@@ -13,7 +13,16 @@
     "confirm": "Confirm",
     "back": "Back",
     "next": "Next",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "tryAgain": "Try again",
+    "goHome": "Back to home",
+    "menu": "Menu",
+    "mainNav": "Main navigation",
+    "errorTitle": "Something went wrong",
+    "errorBody": "We couldn't load this page. Please try again.",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you're looking for doesn't exist or has moved.",
+    "browseEvents": "Browse events"
   },
   "nav": {
     "events": "Events",
@@ -131,6 +140,27 @@
     "forgotPassword": "Forgot password?",
     "orContinueWith": "Or continue with",
     "alreadyHaveAccount": "Already have an account?",
-    "noAccount": "Don't have an account?"
+    "noAccount": "Don't have an account?",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "passwordHint": "At least 8 characters",
+    "joiningAs": "I am joining as…",
+    "roleCustomer": "Customer",
+    "roleCustomerDesc": "Discover and attend events",
+    "roleOrganizer": "Organizer",
+    "roleOrganizerDesc": "Create and manage events",
+    "roleSupplier": "Supplier",
+    "roleSupplierDesc": "Offer services to events",
+    "forgotTitle": "Reset your password",
+    "forgotBody": "Enter the email on your account and we'll send you a link to choose a new password.",
+    "sendResetLink": "Send reset link",
+    "resetSent": "If an account exists for that email, a reset link is on its way. Check your inbox.",
+    "backToLogin": "Back to log in",
+    "resetTitle": "Choose a new password",
+    "newPassword": "New password",
+    "updatePassword": "Update password",
+    "passwordUpdated": "Your password has been updated.",
+    "resetLinkInvalid": "This reset link is invalid or has expired. Request a new one.",
+    "callbackFailed": "We couldn't complete sign-in. Please try again."
   }
 }
