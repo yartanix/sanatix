@@ -46,6 +46,10 @@ export default function Navbar() {
     router.replace(pathname, { locale: locale === "ar" ? "en" : "ar" });
   }
 
+  // The page someone is on is marked with aria-current, which both tells a
+  // screen reader "current page" and is the hook the highlight is styled on.
+  const isCurrent = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
   const navLinks = [
     { href: "/events",       label: t("nav.events") },
     { href: "/venues",       label: t("nav.venues") },
@@ -64,12 +68,12 @@ export default function Navbar() {
   );
 
   return (
-    <nav className="sticky top-0 z-50 bg-brand-midnight/80 backdrop-blur-xl border-b border-white/[0.08]">
+    <nav aria-label={t("common.mainNav")} className="sticky top-0 z-50 bg-brand-midnight/80 backdrop-blur-xl border-b border-white/[0.08]">
       <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <svg width="28" height="28" viewBox="0 0 34 34" fill="none">
+          <svg width="28" height="28" viewBox="0 0 34 34" fill="none" aria-hidden="true">
             <defs>
               <filter id="navGlow" x="-60%" y="-60%" width="220%" height="220%">
                 <feGaussianBlur stdDeviation="1.4" result="b" />
@@ -91,7 +95,12 @@ export default function Navbar() {
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-7 text-sm text-brand-warm-white/65">
           {navLinks.map((l) => (
-            <Link key={l.href} href={l.href} className="flex items-center gap-1.5 hover:text-brand-warm-white transition-colors">
+            <Link
+              key={l.href}
+              href={l.href}
+              aria-current={isCurrent(l.href) ? "page" : undefined}
+              className="flex items-center gap-1.5 hover:text-brand-warm-white transition-colors aria-[current=page]:text-brand-warm-white aria-[current=page]:font-medium"
+            >
               {l.label}
               {l.soon && soonBadge}
             </Link>
@@ -108,10 +117,13 @@ export default function Navbar() {
             {isRTL ? "خطط لحفلة" : "Plan a Party"}
           </Link>
           <button
+            type="button"
             onClick={toggleLocale}
+            aria-label={isRTL ? "Switch to English" : "التبديل إلى العربية"}
+            lang={isRTL ? "en" : "ar"}
             className="flex items-center gap-1.5 text-xs font-medium text-brand-warm-white/70 hover:text-brand-warm-white transition-colors border border-white/15 rounded-full px-3 py-1.5"
           >
-            <Globe size={13} />
+            <Globe size={13} aria-hidden="true" />
             {isRTL ? "EN" : "ع"}
           </button>
           {user ? (
@@ -155,16 +167,20 @@ export default function Navbar() {
 
         {/* Mobile menu toggle */}
         <button
-          className="md:hidden text-brand-warm-white"
+          type="button"
+          className="md:hidden text-brand-warm-white p-2 -m-2 rounded-lg"
+          aria-label={t("common.menu")}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-menu"
           onClick={() => setMenuOpen(!menuOpen)}
         >
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          {menuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-brand-midnight border-t border-white/[0.08] px-6 py-4 space-y-4">
+        <div id="mobile-menu" className="md:hidden bg-brand-midnight border-t border-white/[0.08] px-6 py-4 space-y-4">
           <Link
             href="/plan-a-party"
             onClick={() => setMenuOpen(false)}
@@ -177,7 +193,8 @@ export default function Navbar() {
             <Link
               key={l.href}
               href={l.href}
-              className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white"
+              aria-current={isCurrent(l.href) ? "page" : undefined}
+              className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white aria-[current=page]:text-brand-warm-white aria-[current=page]:font-medium"
               onClick={() => setMenuOpen(false)}
             >
               {l.label}
