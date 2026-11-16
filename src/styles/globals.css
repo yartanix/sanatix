@@ -9,6 +9,14 @@
   --color-warm-white:  #F5F4F0;
   --color-sand:        #F0EDE4;
   --color-ink:         #2C2C3A;
+
+  /* tailwind.config.ts builds the default font stack as
+     "var(--font-sans), system-ui, sans-serif". This variable was never
+     defined, which makes that whole declaration invalid, so every
+     left-to-right page fell back to the browser default serif (Times New
+     Roman). Tajawal is the one webfont the root layout loads, and it
+     covers Latin as well as Arabic. */
+  --font-sans: "Tajawal";
 }
 
 @layer base {
@@ -26,4 +34,166 @@
   .text-gold { color: var(--color-gold); }
   .bg-midnight { background-color: var(--color-midnight); }
   .bg-warm-white { background-color: var(--color-warm-white); }
+}
+
+/* ── Keyboard focus ──────────────────────────────────────────────
+   One visible focus indicator for every interactive element. It is
+   :focus-visible, so it shows for keyboard and assistive-tech focus and
+   not on a mouse click. The 2px offset keeps the ring off the element's
+   own border, and the outline (unlike a box-shadow ring) survives
+   Windows High Contrast / forced-colors mode. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+
+  /* Text fields draw the ring on their own edge instead of outside it. */
+  :is(input, textarea, select):focus-visible {
+    outline-offset: 0;
+    border-color: var(--color-gold);
+  }
+
+  /* ── Motion ────────────────────────────────────────────────────
+     People who ask their system for reduced motion get state changes
+     without the travel: transitions and animations finish at once. The
+     loading spinner opts back in below with a slow rotation, because a
+     frozen spinner reads as a hung page. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ── Loading spinner ─────────────────────────────────────────────
+   Used as <progress aria-label="…" class="loading-spinner">. A <progress>
+   with no value is natively "indeterminate", so assistive technology
+   announces it as busy without any ARIA beyond the label. */
+@property --arc-start {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@property --arc-end {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+/* Holds the dash animation, so it is only added where @property works;
+   elsewhere the spinner falls back to a plain rotation. */
+@property --progress-dash-animation {
+  syntax: "*";
+  inherits: false;
+  initial-value: , progress-dash 3s ease-in-out infinite;
+}
+
+progress.loading-spinner:indeterminate::-webkit-progress-bar {
+  display: none;
+  background: none;
+}
+progress.loading-spinner:indeterminate::-webkit-progress-value {
+  display: none;
+  background: none;
+}
+progress.loading-spinner:indeterminate::-moz-progress-bar {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate {
+  --_from: calc(90deg + var(--arc-start, 0deg));
+  --_to: calc(90deg + var(--arc-end, 158deg));
+  --size: 40px;
+  --thickness: 3px;
+  --spinner-color: var(--color-gold);
+  --track-color: rgb(15 15 20 / 0.08);
+  --spinner-duration: 1.5s;
+  --_used-spinner-duration: var(--spinner-duration);
+
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  appearance: none;
+
+  background: conic-gradient(
+      from var(--_from),
+      var(--spinner-color) calc(var(--_to) - var(--_from)),
+      transparent 0
+    )
+    var(--track-color);
+
+  animation:
+    progress-spin var(--_used-spinner-duration) linear infinite
+    var(--progress-dash-animation, );
+}
+
+/* Hollow the disc into a ring: background-clip where it exists
+   (Chrome/Edge 150+, Safari 18.2+), a mask everywhere else (Firefox). */
+@supports (background-clip: border-area) {
+  progress.loading-spinner:indeterminate {
+    background-clip: border-area;
+    border: var(--thickness) solid transparent;
+    background-origin: border-box;
+  }
+}
+@supports not (background-clip: border-area) {
+  progress.loading-spinner:indeterminate {
+    --clip-boundary: calc(100% - var(--thickness));
+    mask-image: radial-gradient(
+      farthest-side,
+      transparent var(--clip-boundary),
+      black var(--clip-boundary)
+    );
+    border: 0;
+  }
+}
+
+/* Forced-colors mode strips background gradients, which would erase the
+   spinner; keep it and draw it in system colors instead. */
+@media (forced-colors: active) {
+  progress.loading-spinner:indeterminate {
+    forced-color-adjust: none;
+    --spinner-color: CanvasText;
+    --track-color: Canvas;
+  }
+}
+
+@keyframes progress-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+@keyframes progress-dash {
+  from {
+    --arc-start: 0deg;
+    --arc-end: 3deg;
+  }
+  50% {
+    --arc-start: 100deg;
+    --arc-end: 358deg;
+  }
+  to {
+    --arc-start: 360deg;
+    --arc-end: 363deg;
+  }
+}
+
+/* Slowed, not stopped, so it still shows that something is happening.
+   The !important values beat the blanket reduced-motion rule above. */
+@media (prefers-reduced-motion: reduce) {
+  progress.loading-spinner:indeterminate {
+    --_used-spinner-duration: 6s;
+    --progress-dash-animation: ;
+    --arc-end: 158deg;
+    animation-duration: 6s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
