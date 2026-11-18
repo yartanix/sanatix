@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Search, MessageCircle, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "@/i18n/routing";
@@ -47,6 +47,17 @@ export default function DirectoryBrowser({ initialProfiles, isRTL, onPick, exclu
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  // A picker (onPick set) is usually mounted with no server-fetched
+  // initialProfiles, since it's embedded inside another page's own
+  // server component rather than being the page itself -- without this,
+  // it would just show "No one found" until the viewer typed something.
+  useEffect(() => {
+    if (onPick && initialProfiles.length === 0) {
+      runSearch("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const visible = useMemo(() => {
     if (!excludeIds?.length) return profiles;

@@ -3,7 +3,10 @@ import { getLocale } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 import { Link } from "@/i18n/routing";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
+import { SITE_URL } from "@/lib/constants";
 import EventCheckinBox from "@/components/organizer/EventCheckinBox";
+import EventInviteManager from "@/components/organizer/EventInviteManager";
+import type { DirectoryProfile } from "@/types";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -41,6 +44,18 @@ export default async function AttendeesPage({ params }: PageProps) {
     .eq("organizer_id", user.id)
     .single();
   if (!event) notFound();
+
+  const { data: inviteRows } = await supabase
+    .from("event_invites")
+    .select("invited_user_id")
+    .eq("event_id", id);
+  const invitedIds = (inviteRows ?? []).map((r) => r.invited_user_id as string);
+  const { data: invitedProfileRows } = invitedIds.length
+    ? await supabase.from("directory_profiles").select("*").in("id", invitedIds)
+    : { data: [] as DirectoryProfile[] };
+  const invitedProfiles = (invitedProfileRows ?? []) as DirectoryProfile[];
+
+  const eventTitle = isRTL ? event.title_ar : event.title_en;
 
   interface AttendeeRow {
     id: string;
@@ -82,6 +97,14 @@ export default async function AttendeesPage({ params }: PageProps) {
       </div>
 
       <EventCheckinBox eventId={id} isRTL={isRTL} />
+
+      <EventInviteManager
+        eventId={id}
+        eventTitle={eventTitle ?? ""}
+        shareUrl={`${SITE_URL}/events/${id}`}
+        initialInvites={invitedProfiles}
+        isRTL={isRTL}
+      />
 
       {!bookings || bookings.length === 0 ? (
         <div className="bg-white rounded-2xl border border-black/5 p-12 text-center">
