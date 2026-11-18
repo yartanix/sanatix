@@ -3,7 +3,7 @@
 -- blocking and reporting, and the chat-media storage bucket).
 
 begin;
-select plan(37);
+select plan(41);
 
 set local role postgres;
 
@@ -320,6 +320,39 @@ select throws_ok(
   '42501',
   null,
   'a non-participant cannot write into another conversation''s chat-media folder'
+);
+
+-- ─── get_event_attendees() / get_party_members() (migration 023) ──
+select tests.login_as('f1111111-0000-0000-0000-000000000001');
+select ok(
+  (select array_agg(id) from get_event_attendees('f0000000-0000-0000-0000-00000000000e'))
+    @> array['f1111111-0000-0000-0000-000000000001'::uuid, 'f2222222-0000-0000-0000-000000000002'::uuid,
+             'f7777777-0000-0000-0000-000000000007'::uuid, 'f4444444-0000-0000-0000-000000000004'::uuid],
+  'get_event_attendees returns the organizer, both confirmed attendees, and the invited user'
+);
+
+select tests.login_as('f8888888-0000-0000-0000-000000000008');
+select throws_ok(
+  $$ select * from get_event_attendees('f0000000-0000-0000-0000-00000000000e') $$,
+  'P0001',
+  'not a participant of this event',
+  'someone with no relationship to the event cannot list its attendees'
+);
+
+select tests.login_as('f5555555-0000-0000-0000-000000000005');
+select ok(
+  (select array_agg(id) from get_party_members('f0000000-0000-0000-0000-00000000000d'))
+    @> array['f5555555-0000-0000-0000-000000000005'::uuid, 'f6666666-0000-0000-0000-000000000006'::uuid,
+             'f3333333-0000-0000-0000-000000000003'::uuid],
+  'get_party_members returns the host and both linked guests'
+);
+
+select tests.login_as('f8888888-0000-0000-0000-000000000008');
+select throws_ok(
+  $$ select * from get_party_members('f0000000-0000-0000-0000-00000000000d') $$,
+  'P0001',
+  'not a participant of this party',
+  'someone with no relationship to the party cannot list its members'
 );
 
 select * from finish();

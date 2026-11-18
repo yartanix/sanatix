@@ -2,7 +2,7 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Link, useRouter, usePathname } from "@/i18n/routing";
-import { Menu, X, Globe, LayoutDashboard, LogOut, ShieldCheck, PartyPopper } from "lucide-react";
+import { Menu, X, Globe, LayoutDashboard, LogOut, ShieldCheck, PartyPopper, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -128,6 +128,10 @@ export default function Navbar() {
           </button>
           {user ? (
             <>
+              <Link href="/community" className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white transition-colors">
+                <Users size={15} />
+                {isRTL ? "المجتمع" : "Community"}
+              </Link>
               <Link href="/parties" className="flex items-center gap-1.5 text-sm text-brand-warm-white/75 hover:text-brand-warm-white transition-colors">
                 <PartyPopper size={15} />
                 {isRTL ? "حفلاتي" : "My Parties"}
@@ -204,6 +208,9 @@ export default function Navbar() {
           <div className="pt-2 flex items-center gap-3 border-t border-white/[0.08]">
             {user ? (
               <>
+                <Link href="/community" className="text-sm text-brand-warm-white/75" onClick={() => setMenuOpen(false)}>
+                  {isRTL ? "المجتمع" : "Community"}
+                </Link>
                 <Link href="/parties" className="text-sm text-brand-warm-white/75" onClick={() => setMenuOpen(false)}>
                   {isRTL ? "حفلاتي" : "My Parties"}
                 </Link>
