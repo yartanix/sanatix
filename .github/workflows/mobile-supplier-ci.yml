@@ -1,0 +1,182 @@
+name: Mobile Supplier CI/CD
+
+# Builds and (on main) ships the Sanatix Supplier app via Expo EAS. Mirrors
+# mobile-ci.yml exactly (same jobs, same triggers, same manual-dispatch
+# shape) — see that file's comments for the full reasoning. The only
+# differences: working-directory is mobile-supplier, and the Apple/Google
+# submit secrets are separate (SUPPLIER_*) because this is a distinct App
+# Store Connect record / Play Console app / EAS project from the consumer
+# app, not the same one. EXPO_TOKEN is shared — it's an Expo *account*
+# token (the "yartanix" EAS account owns both projects), not scoped to one
+# project.
+#
+# This app has never been built or submitted before (see
+# mobile-supplier/README.md) — until EAS/Apple/Google are actually set up
+# per that README, the typecheck job still runs on every PR, but build/
+# submit will fail for a real reason (no EAS project credentials / no App
+# Store Connect or Play Console record yet), not because anything here is
+# wrong.
+#
+# Required GitHub secrets (Settings → Secrets and variables → Actions):
+#   EXPO_TOKEN                          – shared with mobile-ci.yml
+#   SUPPLIER_ASC_API_KEY_P8_BASE64      – Supplier app's App Store Connect API key (.p8), base64-encoded
+#   SUPPLIER_ASC_API_KEY_ISSUER_ID      – that key's issuer ID
+#   SUPPLIER_ASC_API_KEY_ID             – that key's ID
+#   SUPPLIER_GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 – Supplier app's Play Console service account JSON, base64-encoded
+#
+# None of these are needed just to get CI typechecking PRs — only the
+# build, update and submit jobs use them, and those only run once EAS/the
+# store accounts are wired up (see mobile-supplier/README.md and the
+# publish checklist delivered alongside this file).
+
+on:
+  pull_request:
+    paths:
+      - "mobile-supplier/**"
+  push:
+    branches: [main]
+    paths:
+      - "mobile-supplier/**"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile to run (ignored if 'publish OTA update instead' is ticked)"
+        required: true
+        default: "preview"
+        type: choice
+        options: [development, preview, production]
+      platform:
+        description: "Which platform(s) to build — defaults to android only until the Apple Developer account is active and iOS credentials exist; switch this back to 'all' once eas credentials has been run for iOS"
+        required: true
+        default: "android"
+        type: choice
+        options: [android, ios, all]
+      submit:
+        description: "Submit the resulting build to the store (internal track) after building"
+        required: true
+        default: false
+        type: boolean
+      publishUpdate:
+        description: "Publish an OTA update instead of building — only for JS/asset-only changes, never after adding a native module or bumping app.json's native config"
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  typecheck:
+    name: Typecheck & lint (mobile-supplier)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-supplier
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile-supplier/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint --if-present
+
+  build:
+    name: EAS build (${{ github.event.inputs.profile || 'preview' }}, ${{ github.event.inputs.platform || 'android' }})
+    if: github.event_name != 'pull_request' && github.event.inputs.publishUpdate != 'true'
+    needs: typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-supplier
+    outputs:
+      profile: ${{ steps.vars.outputs.profile }}
+      platform: ${{ steps.vars.outputs.platform }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile-supplier/package-lock.json
+      - run: npm ci
+      - name: Install eas-cli
+        run: npm install -g eas-cli
+      - id: vars
+        run: |
+          echo "profile=${{ github.event.inputs.profile || 'preview' }}" >> "$GITHUB_OUTPUT"
+          echo "platform=${{ github.event.inputs.platform || 'android' }}" >> "$GITHUB_OUTPUT"
+      - name: EAS build (non-interactive)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --platform "${{ steps.vars.outputs.platform }}" --profile "${{ steps.vars.outputs.profile }}" --non-interactive
+
+  update:
+    name: Publish OTA update (${{ github.event.inputs.profile || 'preview' }})
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.publishUpdate == 'true'
+    needs: typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-supplier
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile-supplier/package-lock.json
+      - run: npm ci
+      - name: Install eas-cli
+        run: npm install -g eas-cli
+      - name: Publish update
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas update \
+            --channel "${{ github.event.inputs.profile || 'preview' }}" \
+            --message "${{ github.event.head_commit.message || github.sha }}" \
+            --non-interactive
+
+  submit:
+    name: Submit to store (TestFlight / Play internal testing)
+    if: |
+      needs.build.result == 'success' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.submit == 'true' &&
+      needs.build.outputs.profile == 'production'
+    needs: build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-supplier
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile-supplier/package-lock.json
+      - run: npm ci
+      - name: Install eas-cli
+        run: npm install -g eas-cli
+      - name: Write iOS App Store Connect API key
+        run: echo "${{ secrets.SUPPLIER_ASC_API_KEY_P8_BASE64 }}" | base64 -d > asc-api-key.p8
+      - name: Write Google Play service account key
+        run: echo "${{ secrets.SUPPLIER_GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}" | base64 -d > google-service-account.json
+      - name: Fill in App Store Connect identifiers
+        run: |
+          sed -i "s/REPLACE_WITH_YOUR_ASC_ISSUER_ID/${{ secrets.SUPPLIER_ASC_API_KEY_ISSUER_ID }}/" eas.json
+          sed -i "s/REPLACE_WITH_YOUR_ASC_KEY_ID/${{ secrets.SUPPLIER_ASC_API_KEY_ID }}/" eas.json
+      - name: Submit latest build — iOS (TestFlight internal)
+        if: needs.build.outputs.platform == 'ios' || needs.build.outputs.platform == 'all'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas submit --platform ios --profile production --non-interactive --latest
+      - name: Submit latest build — Android (Play internal testing)
+        if: needs.build.outputs.platform == 'android' || needs.build.outputs.platform == 'all'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas submit --platform android --profile production --non-interactive --latest
+      - name: Clean up credential files
+        if: always()
+        run: rm -f asc-api-key.p8 google-service-account.json
