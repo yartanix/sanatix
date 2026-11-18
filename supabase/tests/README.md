@@ -27,6 +27,19 @@ CI, with nothing but Postgres itself.
   actually updates the right row for a correct token, raises (rather than
   silently no-op'ing) for a wrong token or an invalid status value; a
   user's push token is readable only by that same user.
+- **`rls/community_messaging.sql`** — the open directory never exposes
+  `phone`; `users_share_event()` correctly recognizes all six "shared
+  event" shapes (booking↔organizer, booking↔booking, invite↔organizer,
+  invite↔invite, party host↔linked guest, linked guest↔linked guest);
+  `start_or_get_dm()` refuses a stranger (`NO_SHARED_EVENT`) and a
+  blocked user, and is idempotent/symmetric; `join_event_group()` /
+  `join_party_group()` reject a non-participant; bookings and linked,
+  rsvp-yes party guests auto-join their event/party group chat with no
+  explicit "join" call; `send_message()` enforces the same participant
+  and block checks as the RLS policy; blocking is one-directional to
+  read but symmetric in effect; reporting is visible to the reporter and
+  admins only; and the `chat-media` storage bucket's RLS only lets a
+  conversation's own participants write into its folder.
 
 ## How it works
 
@@ -37,14 +50,22 @@ is a minimal stand-in — just enough for `schema.sql`'s foreign keys and
 Postgres session setting the same way PostgREST sets it from a real JWT on
 every request against the live project.
 
+Supabase also manages a `storage` schema (`storage.buckets`,
+`storage.objects`, `storage.foldername()`) for Storage, which migration
+021's `chat-media` bucket + its object-level RLS policies need.
+`fixtures/local_storage_shim.sql` is a minimal stand-in for that, loaded
+before `schema.sql`/the migrations the same way the auth shim is — no
+actual file bytes move anywhere, it only exists so those RLS policies can
+be exercised.
+
 `fixtures/test_helpers.sql` adds `tests.login_as(user_id)` /
 `tests.logout()` so each test can flip between "acting as this user" and
 "acting as an anonymous visitor" and have the exact same RLS policies
 apply as they would in production.
 
-**Never load `fixtures/local_auth_shim.sql` into a real database** — it's
-a stand-in for local testing only, not something that belongs anywhere
-near the actual Supabase project.
+**Never load `fixtures/local_auth_shim.sql` or `fixtures/local_storage_shim.sql`
+into a real database** — they're stand-ins for local testing only, not
+something that belongs anywhere near the actual Supabase project.
 
 ## Running it locally
 
@@ -58,6 +79,7 @@ geo queries or cron jobs).
 createdb sanatix_test
 
 psql -d sanatix_test -f supabase/tests/fixtures/local_auth_shim.sql
+psql -d sanatix_test -f supabase/tests/fixtures/local_storage_shim.sql
 psql -d sanatix_test -f supabase/schema.sql
 for f in supabase/migrations/*.sql; do psql -d sanatix_test -f "$f"; done
 psql -d sanatix_test -f supabase/tests/fixtures/grants.sql

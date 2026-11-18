@@ -227,6 +227,11 @@ export interface PartyGuest {
   custom_answer: string | null;
   checked_in_at: string | null;
   checked_in_via: "door-pass" | "host" | null;
+  /** Set once this guest is linked to an actual Sanatix account -- either
+   * they RSVP'd while signed in and called link_rsvp_to_self(), or the
+   * host added them straight from the directory via add_party_guest_by_user().
+   * Unlocks the party's group chat and DMs with the host (migration 021). */
+  user_id: string | null;
 }
 
 export interface RsvpDetails {
@@ -247,4 +252,76 @@ export interface RsvpDetails {
   entry_code: string | null;
   template_accent: string;
   checked_in_at: string | null;
+}
+
+// ─── Community messaging (migration 021) ────────────────────────────
+
+/** A narrow, always-safe view over profiles for the open directory --
+ * never carries phone, even though profiles itself is publicly readable. */
+export interface DirectoryProfile {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  city: string | null;
+  role: UserRole;
+  created_at: string;
+}
+
+export type ConversationKind = "dm" | "event_group" | "party_group";
+
+export interface Conversation {
+  id: string;
+  kind: ConversationKind;
+  /** event_id or party_id for a group conversation; null for a dm. */
+  source_id: string | null;
+  /** dm only, sorted so the pair is unique regardless of who started it. */
+  dm_user_a: string | null;
+  dm_user_b: string | null;
+  created_at: string;
+}
+
+export interface ConversationParticipant {
+  conversation_id: string;
+  user_id: string;
+  joined_at: string;
+  last_read_at: string | null;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string | null;
+  /** Object path in the chat-media storage bucket, if any. */
+  image_path: string | null;
+  created_at: string;
+}
+
+export interface Block {
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
+}
+
+export type ReportTargetType = "user" | "message";
+export type ReportStatus = "open" | "reviewed" | "dismissed";
+
+export interface Report {
+  id: string;
+  reporter_id: string;
+  target_type: ReportTargetType;
+  target_id: string;
+  reason: string;
+  status: ReportStatus;
+  created_at: string;
+}
+
+/** A lightweight, non-ticket invite: an organizer inviting a Sanatix
+ * user straight to an event (grants "shared event" status for DMs/group
+ * chat), separate from booking a ticket. */
+export interface EventInvite {
+  event_id: string;
+  invited_user_id: string;
+  invited_by: string;
+  created_at: string;
 }

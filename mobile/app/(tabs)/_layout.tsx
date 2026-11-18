@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { PartyPopper, CalendarDays, HeartHandshake, Settings as SettingsIcon } from "lucide-react-native";
+import { PartyPopper, CalendarDays, HeartHandshake, Settings as SettingsIcon, Users } from "lucide-react-native";
 import { colors } from "@/lib/styles";
 
 // The persistent bottom-tab shell for the unified app. Parties and
@@ -40,6 +40,10 @@ export default function TabsLayout() {
           tabBarBadgeStyle: { backgroundColor: colors.gold, color: colors.midnight, fontSize: 9 },
           tabBarIcon: ({ color, size }) => <HeartHandshake color={color} size={size} />,
         }}
+      />
+      <Tabs.Screen
+        name="community"
+        options={{ title: "Community", tabBarIcon: ({ color, size }) => <Users color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="settings"

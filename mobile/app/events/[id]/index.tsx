@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { View, Text, TextInput, Pressable, ActivityIndicator, ScrollView } from "react-native";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
-import { Users, Ticket as TicketIcon, Plus } from "lucide-react-native";
+import { Users, Ticket as TicketIcon, Plus, MessagesSquare } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
 import type { SanatixEvent, TicketType } from "@/lib/types";
@@ -18,6 +18,7 @@ export default function EditEventScreen() {
   const [venueCity, setVenueCity] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [joiningChat, setJoiningChat] = useState(false);
 
   const load = useCallback(async () => {
     const [{ data: ev }, { data: tt }] = await Promise.all([
@@ -41,6 +42,17 @@ export default function EditEventScreen() {
     setSaving(true);
     await supabase.from("events").update({ title_ar: titleAr, title_en: titleEn, venue_city: venueCity }).eq("id", event.id);
     setSaving(false);
+  }
+
+  async function openEventChat() {
+    if (!event) return;
+    setJoiningChat(true);
+    const { data, error } = await supabase.rpc("join_event_group", { p_event_id: event.id });
+    setJoiningChat(false);
+    if (error) {
+      return;
+    }
+    router.push({ pathname: "/community/chat/[id]", params: { id: data as string } });
   }
 
   async function setStatus(status: SanatixEvent["status"]) {
@@ -120,7 +132,16 @@ export default function EditEventScreen() {
       )}
 
       <Pressable
-        style={[styles.outlineButton, { marginTop: 24, flexDirection: "row", gap: 8 }]}
+        style={[styles.goldButton, { marginTop: 24, flexDirection: "row", gap: 8 }, joiningChat && styles.disabled]}
+        onPress={openEventChat}
+        disabled={joiningChat}
+      >
+        {joiningChat ? <ActivityIndicator color={colors.midnight} /> : <MessagesSquare size={16} color={colors.midnight} />}
+        <Text style={styles.goldButtonText}>Event chat</Text>
+      </Pressable>
+
+      <Pressable
+        style={[styles.outlineButton, { marginTop: 10, flexDirection: "row", gap: 8 }]}
         onPress={() => router.push(`/events/${event.id}/attendees`)}
       >
         <Users size={16} color={colors.ink} />

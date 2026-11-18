@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Share2, Copy, Check, Trash2, UserPlus, Contact, RefreshCw, MessageCircle, BadgeCheck } from "lucide-react";
+import { Share2, Copy, Check, Trash2, UserPlus, Contact, RefreshCw, MessageCircle, BadgeCheck, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { PartyGuest, RsvpStatus } from "@/types";
+import DirectoryBrowser from "@/components/community/DirectoryBrowser";
+import type { DirectoryProfile, PartyGuest, RsvpStatus } from "@/types";
 
 // Chrome on Android exposes navigator.contacts for picking real device
 // contacts from the browser (no app install needed); other browsers
@@ -46,6 +47,8 @@ export default function GuestManager({
   const [contactsSupported, setContactsSupported] = useState(false);
   const [nativeShareSupported, setNativeShareSupported] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
+  const [userPickError, setUserPickError] = useState<string | null>(null);
 
   useEffect(() => {
     setContactsSupported(typeof navigator !== "undefined" && !!navigator.contacts);
@@ -90,6 +93,24 @@ export default function GuestManager({
     } catch {
       // User cancelled the picker — nothing to do.
     }
+  }
+
+  // Searching Sanatix users and adding one straight from the directory
+  // (add_party_guest_by_user()) links user_id immediately and marks them
+  // "yes" -- skipping the rsvp_token/share-link flow entirely, since the
+  // point is they're already a known account, not an anonymous invite.
+  async function handlePickUser(profile: DirectoryProfile) {
+    setUserPickError(null);
+    const supabase = createClient();
+    const { data, error: pickError } = await supabase.rpc("add_party_guest_by_user", {
+      p_party_id: partyId,
+      p_user_id: profile.id,
+    });
+    if (pickError) {
+      setUserPickError(isRTL ? "تعذّرت الإضافة." : "Couldn't add that guest.");
+      return;
+    }
+    setGuests((prev) => [...prev, data as PartyGuest]);
   }
 
   async function removeGuest(id: string) {
@@ -169,6 +190,44 @@ export default function GuestManager({
             {isRTL ? "تحديث الردود" : "Refresh RSVPs"}
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setUserPickerOpen((v) => !v)}
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-brand-gold-light to-brand-gold py-3 text-sm font-semibold text-brand-midnight hover:opacity-90 transition-opacity"
+        >
+          <Search size={16} />
+          {isRTL ? "ابحث عن مستخدمي سناتيكس" : "Search Sanatix users"}
+        </button>
+
+        {userPickError && (
+          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-2.5 text-sm text-red-700">
+            {userPickError}
+          </div>
+        )}
+
+        {userPickerOpen && (
+          <div className="bg-brand-warm-white rounded-2xl p-4 relative">
+            <button
+              type="button"
+              onClick={() => setUserPickerOpen(false)}
+              className="absolute top-3 end-3 text-brand-ink/40 hover:text-brand-midnight p-1"
+            >
+              <X size={15} />
+            </button>
+            <p className="text-xs text-brand-ink/50 mb-3 pe-6">
+              {isRTL
+                ? "إضافة مستخدم تربطه بحسابه مباشرة وتسجّله كحاضر."
+                : "Adding someone here links their account directly and marks them as going."}
+            </p>
+            <DirectoryBrowser
+              initialProfiles={[]}
+              isRTL={isRTL}
+              onPick={handlePickUser}
+              excludeIds={guests.map((g) => g.user_id).filter((id): id is string => Boolean(id))}
+            />
+          </div>
+        )}
 
         {contactsSupported && (
           <button

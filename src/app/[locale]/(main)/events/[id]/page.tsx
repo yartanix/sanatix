@@ -8,11 +8,12 @@ import Navbar from "@/components/layout/Navbar";
 import TicketSelector from "@/components/events/TicketSelector";
 import ReviewForm from "@/components/events/ReviewForm";
 import EventActions from "@/components/events/EventActions";
+import EventAttendees from "@/components/events/EventAttendees";
 import OutboundLink from "@/components/common/OutboundLink";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { EVENT_CATEGORY_LABEL, SITE_URL } from "@/lib/constants";
 import { buildMetadata, trimDescription, jsonLd } from "@/lib/seo";
-import type { Review } from "@/types";
+import type { DirectoryProfile, Review } from "@/types";
 
 interface EventPageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -98,6 +99,17 @@ export default async function EventPage({ params }: EventPageProps) {
   const myReview = user ? reviews.find((r) => r.user_id === user.id) ?? null : null;
   const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null;
   const isSaved = Boolean(favoriteRow);
+
+  // get_event_attendees() re-checks qualification itself (organizer, a
+  // live booking, or an invite) and throws for anyone else -- so a
+  // signed-in viewer who isn't actually part of this event just gets no
+  // attendees section, the same "no row = no access" pattern the rest of
+  // this app leans on instead of a separate authorization check here.
+  let attendees: DirectoryProfile[] = [];
+  if (user) {
+    const { data: attendeeRows } = await supabase.rpc("get_event_attendees", { p_event_id: event.id });
+    attendees = (attendeeRows ?? []) as DirectoryProfile[];
+  }
 
   const venueName = event.venues
     ? (isRTL ? event.venues.name_ar : event.venues.name_en)
@@ -257,6 +269,11 @@ export default async function EventPage({ params }: EventPageProps) {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Attendees + event group chat */}
+            {attendees.length > 0 && (
+              <EventAttendees eventId={event.id} myId={user!.id} attendees={attendees} isRTL={isRTL} />
             )}
 
             {/* Reviews */}

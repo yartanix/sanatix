@@ -68,6 +68,7 @@ jobs:
         run: |
           set -e
           sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/tests/fixtures/local_auth_shim.sql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/tests/fixtures/local_storage_shim.sql
           sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f supabase/schema.sql
           for f in supabase/migrations/*.sql; do
             sudo -u postgres psql -v ON_ERROR_STOP=1 -d sanatix_test -f "$f"

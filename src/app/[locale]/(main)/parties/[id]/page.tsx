@@ -7,9 +7,10 @@ import Navbar from "@/components/layout/Navbar";
 import GuestManager from "@/components/party/GuestManager";
 import PartyStats from "@/components/party/PartyStats";
 import DoorPassCard from "@/components/party/DoorPassCard";
+import PartyMembers from "@/components/party/PartyMembers";
 import { formatDateTime } from "@/lib/utils";
 import { SITE_URL } from "@/lib/constants";
-import type { Party, PartyGuest } from "@/types";
+import type { DirectoryProfile, Party, PartyGuest } from "@/types";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -46,6 +47,9 @@ export default async function PartyDashboardPage({ params }: PageProps) {
   // en has a /en prefix (localePrefix: "as-needed"), ar (default) has none.
   const rsvpBaseUrl = `${SITE_URL}${locale === "en" ? "/en" : ""}/rsvp`;
 
+  const { data: memberRows } = await supabase.rpc("get_party_members", { p_party_id: typedParty.id });
+  const members = (memberRows ?? []) as DirectoryProfile[];
+
   return (
     <div className="min-h-screen bg-brand-warm-white">
       <Navbar />
@@ -65,6 +69,7 @@ export default async function PartyDashboardPage({ params }: PageProps) {
 
         <div className="mt-8 space-y-6">
           <PartyStats guests={guests} isRTL={isRTL} />
+          <PartyMembers partyId={typedParty.id} myId={user.id} members={members} isRTL={isRTL} />
           <DoorPassCard
             doorPassUrl={`${SITE_URL}${locale === "en" ? "/en" : ""}/checkin/${typedParty.door_pass_token}`}
             partyTitle={typedParty.title}

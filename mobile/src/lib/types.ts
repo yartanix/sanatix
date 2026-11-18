@@ -114,4 +114,38 @@ export interface PartyGuest {
   invite_status: InviteStatus;
   custom_answer: string | null;
   checked_in_at: string | null;
+  /** Set once this guest is linked to an actual Sanatix account -- see
+   * the matching comment on the web app's PartyGuest type. */
+  user_id: string | null;
+}
+
+// ─── Community messaging (web migration 021/023) ─────────────────────
+
+export interface DirectoryProfile {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  city: string | null;
+  role: Profile["role"];
+  created_at: string;
+}
+
+export type ConversationKind = "dm" | "event_group" | "party_group";
+
+export interface Conversation {
+  id: string;
+  kind: ConversationKind;
+  source_id: string | null;
+  dm_user_a: string | null;
+  dm_user_b: string | null;
+  created_at: string;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string | null;
+  image_path: string | null;
+  created_at: string;
 }
