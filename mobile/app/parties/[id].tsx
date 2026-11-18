@@ -9,13 +9,14 @@ import {
   RefreshControl,
   Share,
   Alert,
+  Modal,
 } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Plus, Share2, Trash2, Users as UsersIcon, RefreshCw, DoorOpen, BadgeCheck, MessageCircle } from "lucide-react-native";
+import { Plus, Share2, Trash2, Users as UsersIcon, RefreshCw, DoorOpen, BadgeCheck, MessageCircle, Search, X, MessagesSquare } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
 import { SITE_URL } from "@/lib/supabase";
-import type { Party, PartyGuest, RsvpStatus } from "@/lib/types";
+import type { DirectoryProfile, Party, PartyGuest, RsvpStatus } from "@/lib/types";
 
 // Mirrors the web app's GuestManager.tsx: manual add, a link out to the
 // native contacts picker, per-guest share using RN's own Share API (the
@@ -39,6 +40,11 @@ export default function PartyDetailScreen() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [adding, setAdding] = useState(false);
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
+  const [directory, setDirectory] = useState<DirectoryProfile[]>([]);
+  const [directoryQuery, setDirectoryQuery] = useState("");
+  const [directoryLoading, setDirectoryLoading] = useState(false);
+  const [joiningChat, setJoiningChat] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -79,6 +85,55 @@ export default function PartyDetailScreen() {
     } else {
       Alert.alert("Couldn't add guest", "Try again.");
     }
+  }
+
+  async function searchDirectory(q: string) {
+    setDirectoryLoading(true);
+    const { data } = await supabase.rpc("search_directory", { q: q.trim() || null, limit_n: 50 });
+    setDirectory((data ?? []) as DirectoryProfile[]);
+    setDirectoryLoading(false);
+  }
+
+  function openUserPicker() {
+    setUserPickerOpen(true);
+    searchDirectory("");
+  }
+
+  // Adding straight from the directory links user_id immediately and
+  // marks them "yes" via add_party_guest_by_user() -- same RPC the web
+  // app's GuestManager uses, skipping the rsvp_token/share-link flow
+  // since the point is they're already a known account.
+  async function handlePickUser(profile: DirectoryProfile) {
+    const { data, error } = await supabase.rpc("add_party_guest_by_user", {
+      p_party_id: id,
+      p_user_id: profile.id,
+    });
+    if (error) {
+      Alert.alert("Couldn't add that guest", "Try again.");
+      return;
+    }
+    setGuests((prev) => [...prev, data as PartyGuest]);
+    setUserPickerOpen(false);
+  }
+
+  async function messageGuest(userId: string) {
+    const { data, error } = await supabase.rpc("start_or_get_dm", { p_other_user_id: userId });
+    if (error) {
+      Alert.alert("Couldn't start a conversation", "Try again.");
+      return;
+    }
+    router.push({ pathname: "/community/chat/[id]", params: { id: data as string } });
+  }
+
+  async function openPartyChat() {
+    setJoiningChat(true);
+    const { data, error } = await supabase.rpc("join_party_group", { p_party_id: id });
+    setJoiningChat(false);
+    if (error) {
+      Alert.alert("Couldn't open the party chat", "Try again.");
+      return;
+    }
+    router.push({ pathname: "/community/chat/[id]", params: { id: data as string } });
   }
 
   async function removeGuest(guestId: string) {
@@ -208,11 +263,28 @@ export default function PartyDetailScreen() {
             )}
 
             <Pressable
+              style={[styles.goldButton, { flexDirection: "row", gap: 8, marginBottom: 10 }, joiningChat && styles.disabled]}
+              onPress={openPartyChat}
+              disabled={joiningChat}
+            >
+              {joiningChat ? <ActivityIndicator color={colors.midnight} /> : <MessagesSquare size={16} color={colors.midnight} />}
+              <Text style={styles.goldButtonText}>Party chat</Text>
+            </Pressable>
+
+            <Pressable
               style={[styles.outlineButton, { flexDirection: "row", gap: 8, marginBottom: 10 }]}
               onPress={shareDoorPass}
             >
               <DoorOpen size={16} color={colors.ink} />
               <Text style={styles.outlineButtonText}>Share door check-in link</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.outlineButton, { flexDirection: "row", gap: 8, marginBottom: 10 }]}
+              onPress={openUserPicker}
+            >
+              <Search size={16} color={colors.ink} />
+              <Text style={styles.outlineButtonText}>Search Sanatix users</Text>
             </Pressable>
 
             <Pressable
@@ -303,9 +375,15 @@ export default function PartyDetailScreen() {
                 <Pressable onPress={() => toggleCheckedIn(item)}>
                   <BadgeCheck size={18} color={item.checked_in_at ? colors.success : colors.inkFaint} />
                 </Pressable>
-                <Pressable onPress={() => shareInvite(item)}>
-                  <Share2 size={18} color={colors.ink} />
-                </Pressable>
+                {item.user_id ? (
+                  <Pressable onPress={() => messageGuest(item.user_id!)}>
+                    <MessageCircle size={18} color={colors.ink} />
+                  </Pressable>
+                ) : (
+                  <Pressable onPress={() => shareInvite(item)}>
+                    <Share2 size={18} color={colors.ink} />
+                  </Pressable>
+                )}
                 <Pressable onPress={() => removeGuest(item.id)}>
                   <Trash2 size={18} color={colors.danger} />
                 </Pressable>
@@ -314,6 +392,49 @@ export default function PartyDetailScreen() {
           );
         }}
       />
+
+      <Modal visible={userPickerOpen} animationType="slide" onRequestClose={() => setUserPickerOpen(false)}>
+        <View style={[styles.screen, { paddingTop: 50 }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 10 }}>
+            <Text style={styles.h1}>Search Sanatix users</Text>
+            <Pressable onPress={() => setUserPickerOpen(false)}>
+              <X size={22} color={colors.ink} />
+            </Pressable>
+          </View>
+          <Text style={[styles.subtle, { paddingHorizontal: 20, marginBottom: 10 }]}>
+            Adding someone here links their account directly and marks them as going.
+          </Text>
+          <TextInput
+            style={[styles.input, { marginHorizontal: 20 }]}
+            placeholder="Search by name..."
+            placeholderTextColor={colors.inkFaint}
+            value={directoryQuery}
+            onChangeText={(v) => {
+              setDirectoryQuery(v);
+              searchDirectory(v);
+            }}
+          />
+          {directoryLoading ? (
+            <ActivityIndicator color={colors.gold} style={{ marginTop: 20 }} />
+          ) : (
+            <FlatList
+              data={directory.filter((p) => !guests.some((g) => g.user_id === p.id))}
+              keyExtractor={(p) => p.id}
+              contentContainerStyle={{ padding: 20, gap: 8 }}
+              ListEmptyComponent={<Text style={[styles.subtle, { textAlign: "center", marginTop: 20 }]}>No one found</Text>}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={[styles.card, { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
+                  onPress={() => handlePickUser(item)}
+                >
+                  <Text style={{ fontWeight: "700", color: colors.ink }}>{item.full_name ?? "Sanatix user"}</Text>
+                  <Plus size={16} color={colors.gold} />
+                </Pressable>
+              )}
+            />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
