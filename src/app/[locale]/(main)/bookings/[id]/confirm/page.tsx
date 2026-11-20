@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLocale } from "next-intl/server";
-import { CheckCircle, Calendar, MapPin, Download } from "lucide-react";
+import { CheckCircle, Calendar, MapPin, Download, CalendarPlus } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import { Link } from "@/i18n/routing";
 import ShareButton from "@/components/bookings/ShareButton";
@@ -143,6 +143,13 @@ export default async function BookingConfirmPage({ params }: ConfirmPageProps) {
               {isRTL ? "تحميل" : "Download"}
             </a>
           )}
+          <a
+            href={`/api/bookings/${id}/calendar.ics`}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-black/10 bg-white text-sm text-brand-ink/70 hover:bg-brand-sand transition-colors"
+          >
+            <CalendarPlus size={15} />
+            {isRTL ? "أضف للتقويم" : "Add to calendar"}
+          </a>
           <ShareButton title={eventTitle} isRTL={isRTL} />
         </div>
 

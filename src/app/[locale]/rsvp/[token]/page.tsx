@@ -4,6 +4,7 @@ import { getLocale } from "next-intl/server";
 import { CalendarDays, MapPin } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import RsvpForm from "@/components/party/RsvpForm";
+import AddToCalendar from "@/components/party/AddToCalendar";
 import { formatDateTime } from "@/lib/utils";
 import type { RsvpDetails } from "@/types";
 
@@ -101,6 +102,19 @@ export default async function RsvpPage({ params }: PageProps) {
           {rsvp.notes && (
             <p className="text-sm text-brand-ink/60 leading-relaxed border-t border-black/5 pt-4">{rsvp.notes}</p>
           )}
+
+          <div className="border-t border-black/5 pt-5">
+            <AddToCalendar
+              token={token}
+              title={rsvp.title}
+              startsAt={rsvp.starts_at}
+              location={
+                [rsvp.location_name, rsvp.location_address].filter(Boolean).join(" — ") || null
+              }
+              notes={rsvp.notes}
+              isRTL={isRTL}
+            />
+          </div>
 
           <div className="border-t border-black/5 pt-5">
             <RsvpForm

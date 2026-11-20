@@ -41,6 +41,12 @@
           "color": "#C8973A"
         }
       ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Sanatix to add events to your calendar when you tap \"Add to my calendar\"."
+        }
+      ],
       "./plugins/withPodfilePostInstall",
       [
         "expo-build-properties",

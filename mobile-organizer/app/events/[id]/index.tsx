@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
 import { View, Text, TextInput, Pressable, ActivityIndicator, ScrollView } from "react-native";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
-import { Users, Ticket as TicketIcon, Plus } from "lucide-react-native";
+import { Users, Ticket as TicketIcon, Plus, CalendarPlus } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
+import { addEventToCalendar } from "@/lib/calendar";
 import type { SanatixEvent, TicketType } from "@/lib/types";
 
 const label = { fontSize: 13, fontWeight: "600" as const, color: colors.ink, marginTop: 16, marginBottom: 6 };
@@ -84,6 +85,21 @@ export default function EditEventScreen() {
           </Pressable>
         ))}
       </View>
+
+      <Pressable
+        style={[styles.outlineButton, { flexDirection: "row", gap: 8, marginBottom: 16 }]}
+        onPress={() =>
+          addEventToCalendar({
+            title: event.title_en || event.title_ar,
+            startsAt: event.starts_at,
+            endsAt: event.ends_at,
+            location: [event.venue_name, event.venue_city].filter(Boolean).join(", "),
+          })
+        }
+      >
+        <CalendarPlus size={16} color={colors.ink} />
+        <Text style={styles.outlineButtonText}>Add to my calendar</Text>
+      </Pressable>
 
       <Text style={label}>Title (English)</Text>
       <TextInput style={styles.input} value={titleEn} onChangeText={setTitleEn} />

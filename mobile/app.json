@@ -48,6 +48,12 @@
         }
       ],
       [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Sanatix to add events to your calendar when you tap \"Add to calendar\"."
+        }
+      ],
+      [
         "@sentry/react-native/expo",
         {
           "organization": "yartanix",
