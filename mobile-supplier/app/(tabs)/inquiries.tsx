@@ -1,11 +1,12 @@
 import { useCallback, useState } from "react";
 import { View, Text, TextInput, Pressable, ActivityIndicator, FlatList } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { Send } from "lucide-react-native";
+import { Send, CalendarPlus } from "lucide-react-native";
 import { useAccessState } from "@/lib/access";
 import { AccessGate } from "@/components/AccessGate";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
+import { addEventToCalendar } from "@/lib/calendar";
 import type { VendorInquiry } from "@/lib/types";
 
 export default function InquiriesScreen() {
@@ -88,6 +89,26 @@ export default function InquiriesScreen() {
           </View>
           {item.phone && <Text style={styles.subtle}>{item.phone}</Text>}
           <Text style={{ color: colors.ink, marginTop: 6, fontSize: 14 }}>{item.message}</Text>
+
+          {item.event_date && (
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+              <Text style={styles.subtle}>Event date: {new Date(item.event_date).toLocaleDateString()}</Text>
+              <Pressable
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                onPress={() =>
+                  addEventToCalendar({
+                    title: `Job: ${item.name}`,
+                    startsAt: item.event_date!,
+                    allDay: true,
+                    notes: item.message,
+                  })
+                }
+              >
+                <CalendarPlus size={14} color={colors.gold} />
+                <Text style={{ fontSize: 12, fontWeight: "600", color: colors.gold }}>Add to calendar</Text>
+              </Pressable>
+            </View>
+          )}
 
           {item.vendor_response ? (
             <View style={{ marginTop: 8, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: `${colors.gold}55` }}>

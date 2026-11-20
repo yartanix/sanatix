@@ -41,6 +41,12 @@
           "color": "#C8973A"
         }
       ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Sanatix to add job dates to your calendar when you tap \"Add to calendar\"."
+        }
+      ],
       "./plugins/withPodfilePostInstall",
       [
         "expo-build-properties",

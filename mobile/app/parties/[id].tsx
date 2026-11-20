@@ -12,10 +12,11 @@ import {
   Modal,
 } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Plus, Share2, Trash2, Users as UsersIcon, RefreshCw, DoorOpen, BadgeCheck, MessageCircle, Search, X, MessagesSquare } from "lucide-react-native";
+import { Plus, Share2, Trash2, Users as UsersIcon, RefreshCw, DoorOpen, BadgeCheck, MessageCircle, Search, X, MessagesSquare, CalendarPlus } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { styles, colors } from "@/lib/styles";
 import { SITE_URL } from "@/lib/supabase";
+import { addEventToCalendar } from "@/lib/calendar";
 import type { DirectoryProfile, Party, PartyGuest, RsvpStatus } from "@/lib/types";
 
 // Mirrors the web app's GuestManager.tsx: manual add, a link out to the
@@ -269,6 +270,21 @@ export default function PartyDetailScreen() {
             >
               {joiningChat ? <ActivityIndicator color={colors.midnight} /> : <MessagesSquare size={16} color={colors.midnight} />}
               <Text style={styles.goldButtonText}>Party chat</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.outlineButton, { flexDirection: "row", gap: 8, marginBottom: 10 }]}
+              onPress={() =>
+                addEventToCalendar({
+                  title: party.title,
+                  startsAt: party.starts_at,
+                  location: party.location_name ?? party.location_address ?? undefined,
+                  notes: party.notes ?? undefined,
+                })
+              }
+            >
+              <CalendarPlus size={16} color={colors.ink} />
+              <Text style={styles.outlineButtonText}>Add to my calendar</Text>
             </Pressable>
 
             <Pressable
