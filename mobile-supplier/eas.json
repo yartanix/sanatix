@@ -44,7 +44,12 @@
   },
   "submit": {
     "production": {
-      "ios": {},
+       "ios": {
++        "ascAppId": "6833901902",
++        "ascApiKeyPath": "./asc-api-key.p8",
++        "ascApiKeyIssuerId": "REPLACE_WITH_YOUR_ASC_ISSUER_ID",
++        "ascApiKeyId": "REPLACE_WITH_YOUR_ASC_KEY_ID"
++      },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
         "track": "internal"
