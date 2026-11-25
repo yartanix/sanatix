@@ -25,7 +25,6 @@ export async function generateMetadata({ params }: VendorPageProps): Promise<Met
     .from("vendors")
     .select("name_ar, name_en, description_ar, description_en, cover_url, logo_url, city, category")
     .eq("id", id)
-    .eq("is_verified", true)
     .single();
 
   if (!vendor) return buildMetadata({ path: `/vendors/${id}`, locale, title: "Sanatix", description: "" });
@@ -51,11 +50,12 @@ export default async function VendorPage({ params }: VendorPageProps) {
   const isRTL = locale === "ar";
   const supabase = await createClient();
 
+  // Not gated on is_verified (Fahoood's call, Nov 25 2026): every vendor is
+  // shown, verified or not — see the listing page for the full rationale.
   const { data } = await supabase
     .from("vendors")
     .select("*")
     .eq("id", id)
-    .eq("is_verified", true)
     .single();
 
   if (!data) notFound();
@@ -72,7 +72,6 @@ export default async function VendorPage({ params }: VendorPageProps) {
       .from("vendors")
       .select("*")
       .eq("category", vendor.category)
-      .eq("is_verified", true)
       .neq("id", vendor.id)
       .limit(4),
   ]);
@@ -128,9 +127,13 @@ export default async function VendorPage({ params }: VendorPageProps) {
           <span className="bg-brand-midnight/80 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1">
             <MapPin size={11} /> {vendor.city}
           </span>
-          {vendor.is_verified && (
+          {vendor.is_verified ? (
             <span className="bg-emerald-500/90 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm font-medium">
               {t("vendors.verified")}
+            </span>
+          ) : (
+            <span className="bg-black/50 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm font-medium">
+              {t("vendors.notVerified")}
             </span>
           )}
         </div>

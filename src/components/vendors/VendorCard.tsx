@@ -25,9 +25,13 @@ export default function VendorCard({ vendor, locale, t }: VendorCardProps) {
               {name?.charAt(0) ?? "V"}
             </div>
           )}
-          {vendor.is_verified && (
+          {vendor.is_verified ? (
             <span className="absolute top-3 start-3 text-xs bg-emerald-500/90 text-white px-2 py-0.5 rounded-full font-medium">
               {t("vendors.verified")}
+            </span>
+          ) : (
+            <span className="absolute top-3 start-3 text-xs bg-black/50 text-white px-2 py-0.5 rounded-full font-medium">
+              {t("vendors.notVerified")}
             </span>
           )}
         </div>
