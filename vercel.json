@@ -6,7 +6,8 @@
   "regions": ["bom1"],
   "crons": [
     { "path": "/api/cron/content-agent", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/party-reminders", "schedule": "0 9 * * *" }
+    { "path": "/api/cron/party-reminders", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/account-manager-agent", "schedule": "0 7 * * *" }
   ],
   "headers": [
     {

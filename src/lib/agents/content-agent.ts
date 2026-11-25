@@ -100,6 +100,11 @@ const VendorDraftSchema = z.object({
   website_url: httpUrl.nullable().optional(),
   instagram_url: httpUrl.nullable().optional(),
   whatsapp: z.string().nullable().optional(),
+  // Added for the Ali account-manager agent (src/lib/agents/account-manager-agent.ts,
+  // Nov 25 2026): a public contact email, when one is genuinely visible on the
+  // vendor's own site/listing. Never invented — see the prompt's hard rule.
+  // Without this, Ali has no address to reach a newly-discovered vendor at.
+  email: z.string().email().nullable().optional(),
   source_url: httpUrl,
 });
 type VendorDraft = z.infer<typeof VendorDraftSchema>;
@@ -178,6 +183,10 @@ For each business, extract:
 - category — exactly one of: ${VENDOR_CATEGORIES.join(", ")}
 - city (one of: ${cities.map((c) => c.name).join(", ")}), country (2-letter code)
 - website_url, instagram_url, whatsapp (null if not found)
+- email — a contact email ONLY if one is genuinely, publicly listed on the
+  business's own website, Instagram bio, or Google Business profile (e.g. a
+  "Contact us" page or bio link). Never guess, construct, or infer one
+  (no first.last@domain guesses) — null if you didn't see it written out.
 - source_url — the exact URL where you verified this business
 
 ${JSON_ONLY_TAIL}`;
@@ -479,6 +488,7 @@ async function sweepVendors(db: Admin, cities: SweepCity[], ownerId: string, cou
       category: draft.category, city: city.name, country: city.country,
       website_url: draft.website_url ?? null, instagram_url: draft.instagram_url ?? null,
       whatsapp: draft.whatsapp ?? null,
+      contact_email: draft.email ?? null,
       is_verified: false, // vendors are onboarded, not scraped — stays a human decision
       source_url: draft.source_url, agent_generated: true,
     });
