@@ -55,13 +55,20 @@ export default async function EventPage({ params }: EventPageProps) {
   const t = await getTranslations();
   const supabase = await createClient();
 
-  const { data: event } = await supabase
+  const { data: event, error } = await supabase
     .from("events")
-    .select(`*, profiles(full_name), ticket_types(*), venues(id, name_ar, name_en, address)`)
+    // profiles must be qualified by the organizer FK: events also reaches
+    // profiles through the event_invites junction table (a true many-to-many,
+    // since its primary key is the (event_id, invited_user_id) pair), so an
+    // unqualified `profiles(...)` embed is ambiguous to PostgREST and every
+    // single event page 404'd (PGRST201) once event_invites existed, with no
+    // error surfaced because the query's `error` was never checked below.
+    .select(`*, profiles!events_organizer_id_fkey(full_name), ticket_types(*), venues(id, name_ar, name_en, address)`)
     .eq("id", id)
     .eq("status", "published")
     .single();
 
+  if (error) console.error("[events/[id]] failed to load event", id, error);
   if (!event) notFound();
 
   const title = locale === "ar" ? event.title_ar : event.title_en;
