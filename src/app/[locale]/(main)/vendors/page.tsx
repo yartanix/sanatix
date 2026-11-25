@@ -46,15 +46,19 @@ export default async function VendorsPage({ searchParams }: PageProps) {
   // the live schema isn't confirmed (there's no tracked migration file for
   // this table) — a wildcard select degrades gracefully to `undefined`
   // instead of erroring the whole query if a column turns out missing.
+  //
+  // Deliberately NOT filtering on is_verified here (Fahoood's call, Nov 25
+  // 2026): show every vendor, verified or not, and let VendorCard's badge
+  // communicate status instead of hiding unverified listings entirely.
+  // Previously this filtered to is_verified = true only, which was meant
+  // to keep unreviewed agent-drafted vendors off the public site, but with
+  // 0 of 202 vendors ever verified that left the whole section empty since
+  // launch. See 06-Known-Issues-and-Roadmap.md and 07-Autonomous-Agents.md
+  // for why the flag exists; moderation now happens by labeling, not gating.
   let query = supabase
     .from("vendors")
     .select("*")
-    // Same fix as /api/vendors/route.ts: vendors have no status column, so
-    // this is the actual enforcement point of "agents never publish" for
-    // this table — without it, unreviewed agent-drafted vendors (is_verified
-    // defaults false) were publicly visible the instant they were inserted.
-    // See 06-Known-Issues-and-Roadmap.md and 07-Autonomous-Agents.md.
-    .eq("is_verified", true)
+    .order("is_verified", { ascending: false })
     .order("is_featured", { ascending: false })
     .order("rating", { ascending: false });
 
@@ -65,8 +69,8 @@ export default async function VendorsPage({ searchParams }: PageProps) {
   const { data } = await query;
   const vendors = (data ?? []) as Vendor[];
 
-  // Cities to offer as filters: only ones that actually have verified vendors.
-  const { data: cityRows } = await supabase.from("vendors").select("city").eq("is_verified", true);
+  // Cities to offer as filters: every city with at least one vendor listed.
+  const { data: cityRows } = await supabase.from("vendors").select("city");
   const cities = Array.from(new Set((cityRows ?? []).map((r) => r.city as string))).sort();
 
   function buildHref(overrides: Record<string, string | undefined>) {

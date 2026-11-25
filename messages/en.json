@@ -57,6 +57,7 @@
     "searchPlaceholder": "Search vendors by name or service...",
     "allServices": "All Services",
     "verified": "Verified",
+    "notVerified": "Not yet verified",
     "contactVendor": "Contact Vendor",
     "viewProfile": "View Profile",
     "empty": "No vendors yet",

@@ -57,6 +57,7 @@
     "searchPlaceholder": "ابحث عن مورد بالاسم أو الخدمة...",
     "allServices": "كل الخدمات",
     "verified": "موثق",
+    "notVerified": "لم يتم التحقق بعد",
     "contactVendor": "تواصل مع المورد",
     "viewProfile": "عرض الملف",
     "empty": "لا يوجد موردون بعد",
