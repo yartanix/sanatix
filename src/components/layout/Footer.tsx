@@ -24,6 +24,9 @@ export default function Footer() {
           <Link href="/privacy" className="text-brand-ink/60 hover:text-brand-gold transition-colors">
             {isRTL ? "سياسة الخصوصية" : "Privacy Policy"}
           </Link>
+          <Link href="/delete-account" className="text-brand-ink/60 hover:text-brand-gold transition-colors">
+            {isRTL ? "حذف الحساب" : "Delete Account"}
+          </Link>
         </nav>
       </div>
     </footer>
