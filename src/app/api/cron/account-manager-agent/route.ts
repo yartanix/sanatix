@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       summary: `${result.sent} invitations sent, ${result.failed} failed, out of ${result.candidates} eligible vendors.`,
     });
 
-    return NextResponse.json({ configured: true, ...result });
+    return NextResponse.json(result);
   } catch (err) {
     await finishAgentRun(run.id, { status: "error", errorMessage: String(err) });
     console.error("[account-manager-agent] run failed:", err);
