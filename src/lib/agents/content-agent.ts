@@ -172,10 +172,51 @@ For each venue, extract:
 ${JSON_ONLY_TAIL}`;
 }
 
-function vendorDiscoveryPrompt(cities: SweepCity[], count: number): string {
+// Explicit per-category definitions, added after discovering (Nov 26 2026)
+// that 4 of 13 categories had ZERO vendors after months of sweeps despite
+// the old prompt's one-line "PRIORITIZING kids'-party specialists" ask.
+// Root cause, confirmed by reading what the model actually returned: every
+// run it kept finding and correctly-by-its-own-lights categorizing big
+// generic wedding/corporate entertainment AGENCIES (DJs, live bands,
+// dancers) as "entertainment" — a real, findable, SEO-prominent category —
+// and never produced a single result for "kids-entertainment",
+// "bounce-houses", "cakes-desserts", or "event-staffing", because nothing
+// in the prompt told it those are DIFFERENT categories from "entertainment"
+// or how to tell them apart. A vague priority instruction wasn't enough;
+// each category needs its own definition and, worse, its own explicit
+// search intent, or the model just keeps returning what's easiest to find.
+const VENDOR_CATEGORY_DEFINITIONS: Record<string, string> = {
+  "kids-entertainment": "Children's entertainers specifically: magicians, clowns, kids' party hosts/MCs, face painters, balloon artists, puppet shows, kids' DJs. NOT a general wedding/corporate entertainment agency, even one that lists \"kids shows\" as one of many services — only businesses whose core offering IS children's entertainment.",
+  "bounce-houses": "Inflatable/bounce house, trampoline, and soft-play rental companies for parties and events.",
+  "cakes-desserts": "Cake makers, bakeries, dessert tables, candy/sweets stations, cupcake and cake-pop makers — for events and parties specifically, not a general restaurant.",
+  "event-staffing": "Businesses providing event ushers, check-in/registration staff, ticket scanning staff, or event security staffing — NOT general event planning or production companies.",
+  entertainment: "General/adult event entertainment AGENCIES: DJs, live bands, dancers, musicians — for weddings and corporate events. If a business is specifically a children's entertainer, it belongs in kids-entertainment instead, never here.",
+  catering: "Food and beverage catering companies for events.",
+  decoration: "Event decor, styling, and balloon/flower installation companies (not florists selling bouquets — that's flowers).",
+  photography: "Event and party photographers/videographers.",
+  flowers: "Florists and flower arrangement businesses.",
+  "sound-lighting": "Audio/visual, sound system, and lighting rental/production companies.",
+  transport: "Transportation/shuttle/limousine services for events.",
+  printing: "Invitation, banner, and signage printing businesses.",
+  venue: "Do not use this category here — venues are discovered separately.",
+};
+
+function vendorDiscoveryPrompt(cities: SweepCity[], count: number, priorityCategories: string[]): string {
+  const categoryList = VENDOR_CATEGORIES
+    .filter((c) => c !== "venue")
+    .map((c) => `- ${c}: ${VENDOR_CATEGORY_DEFINITIONS[c]}`)
+    .join("\n");
+
+  const priorityBlock = priorityCategories.length
+    ? `\n\nTHESE CATEGORIES CURRENTLY HAVE FEW OR NO REAL VENDORS LISTED — run a SPECIFIC, DEDICATED search for each one (e.g. "kids party magician Riyadh", "bounce house rental Jeddah", "kids birthday cake maker Dubai") rather than only searching generically for "event vendors" and sorting whatever comes back: ${priorityCategories.join(", ")}. Fill AT LEAST half of this run's results from these categories if real businesses exist — only fall back to the other categories once you've genuinely tried and can't find more.`
+    : "";
+
   return `You are researching REAL event-services businesses (vendors) currently operating in: ${cities.map((c) => c.label).join(", ")}.
 
-Use web search to find up to ${count} real, currently-operating businesses in categories like: ${VENDOR_CATEGORIES.join(", ")} — PRIORITIZING kids'-party specialists (entertainers, bounce house/inflatable rentals, cake and dessert makers) before filling remaining slots with the other categories. Only include businesses you found real evidence for (own website, Instagram, Google Business, or a directory listing). Never invent a business or its contact details.
+Use web search to find up to ${count} real, currently-operating businesses. Categories, each with exactly what belongs in it (read these carefully — a business goes in the MOST SPECIFIC category that fits, never a generic catch-all when a specific one applies):
+${categoryList}${priorityBlock}
+
+Only include businesses you found real evidence for (own website, Instagram, Google Business, or a directory listing). Never invent a business or its contact details.
 
 For each business, extract:
 - name_en, name_ar
@@ -465,8 +506,25 @@ function resolveSweptCity(candidate: string, cities: SweepCity[]): SweepCity | n
   return cities.find((c) => c.name.toLowerCase() === target) ?? null;
 }
 
+/** Categories with fewer than this many vendors total get actively targeted every run. */
+const VENDOR_CATEGORY_GAP_THRESHOLD = 10;
+
+async function loadUnderfilledCategories(db: Admin): Promise<string[]> {
+  const { data } = await db.from("vendors").select("category");
+  const counts = new Map<string, number>();
+  for (const cat of VENDOR_CATEGORIES) if (cat !== "venue") counts.set(cat, 0);
+  for (const row of data ?? []) {
+    const cat = row.category as string;
+    counts.set(cat, (counts.get(cat) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .filter(([, n]) => n < VENDOR_CATEGORY_GAP_THRESHOLD)
+    .map(([cat]) => cat);
+}
+
 async function sweepVendors(db: Admin, cities: SweepCity[], ownerId: string, count: number) {
-  const research = await researchAndExtractJson(vendorDiscoveryPrompt(cities, count), 8);
+  const priorityCategories = await loadUnderfilledCategories(db);
+  const research = await researchAndExtractJson(vendorDiscoveryPrompt(cities, count, priorityCategories), 8);
   let created = 0, skipped = 0, invalid = 0;
 
   for (const item of research.items) {
@@ -553,7 +611,14 @@ export async function runContentAgent(opts: ContentAgentOptions = {}): Promise<C
   const scope: SweepScope = opts.scope ?? "ksa";
   const eventsPerCity = opts.eventsPerCity ?? 8;
   const venuesPerCity = opts.venuesPerCity ?? 8;
-  const vendorCount = opts.vendorCount ?? 5;
+  // Bumped 5→8 (Nov 26 2026) to match the fixed 8-search budget below —
+  // more room for the model to actually surface the categories
+  // loadUnderfilledCategories() is now asking it to specifically go find,
+  // rather than filling all 5 slots with whatever's easiest (see
+  // vendorDiscoveryPrompt's header comment). Doesn't change API cost: the
+  // search-call budget (8) is unchanged, this only raises how many items
+  // it's allowed to return from within that budget.
+  const vendorCount = opts.vendorCount ?? 8;
   const deadlineMs = opts.deadlineMs ?? Date.now() + 220_000;
 
   const db = createAdminClient();
