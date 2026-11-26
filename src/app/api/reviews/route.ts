@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { moderateComment } from "@/lib/moderation";
 
 const bodySchema = z
   .object({
@@ -28,8 +29,7 @@ export async function POST(req: Request) {
   const { rating, comment, locale, event_id, vendor_id } = parsed.data;
 
   // Only let someone review an event they actually attended — a booking
-  // that isn't cancelled. Vendors have no such gate today (there's no
-  // "you hired this vendor" record to check against).
+  // that isn't cancelled.
   if (event_id) {
     const { data: booking } = await supabase
       .from("bookings")
@@ -44,6 +44,48 @@ export async function POST(req: Request) {
         { error: "You can only review events you've booked" },
         { status: 403 }
       );
+    }
+  }
+
+  // Vendors (Fahoood, Nov 26 2026): only organizers who actually dealt
+  // with this vendor may rate them. There's no real vendor-hire/booking
+  // record in this product yet, so "dealt with" means they sent this
+  // vendor an inquiry (vendor_inquiries) — the closest real signal
+  // available. This same rule is enforced again at the DB level
+  // (migration 024_vendor_review_eligibility.sql, trigger on reviews) so
+  // a direct REST call can't bypass it — this check here just turns that
+  // into a friendly error message instead of a raw Postgres exception.
+  if (vendor_id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    if (profile?.role !== "organizer") {
+      return NextResponse.json({ error: "Only organizers can rate vendors." }, { status: 403 });
+    }
+
+    const { data: inquiry } = await supabase
+      .from("vendor_inquiries")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("vendor_id", vendor_id)
+      .limit(1)
+      .maybeSingle();
+    if (!inquiry) {
+      return NextResponse.json(
+        { error: "You can only rate a vendor you've contacted." },
+        { status: 403 }
+      );
+    }
+  }
+
+  // Moderate the comment (offensive / unlawful content) BEFORE writing
+  // anything — fails closed, see src/lib/moderation.ts.
+  if (comment) {
+    const moderation = await moderateComment(comment);
+    if (!moderation.allowed) {
+      return NextResponse.json({ error: moderation.reason ?? "This comment can't be published as written." }, { status: 422 });
     }
   }
 
