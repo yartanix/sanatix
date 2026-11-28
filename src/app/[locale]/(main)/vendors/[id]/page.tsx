@@ -7,6 +7,7 @@ import { InstagramIcon } from "@/components/icons/InstagramIcon";
 import Navbar from "@/components/layout/Navbar";
 import VendorCard from "@/components/vendors/VendorCard";
 import VendorInquiryForm from "@/components/vendors/VendorInquiryForm";
+import VendorReviewForm from "@/components/vendors/VendorReviewForm";
 import { Link } from "@/i18n/routing";
 import { VENDOR_CATEGORY_LABEL, SITE_URL } from "@/lib/constants";
 import { buildMetadata, trimDescription, jsonLd } from "@/lib/seo";
@@ -61,7 +62,9 @@ export default async function VendorPage({ params }: VendorPageProps) {
   if (!data) notFound();
   const vendor = data as Vendor;
 
-  const [{ data: reviewRows }, { data: similarRows }] = await Promise.all([
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const [{ data: reviewRows }, { data: similarRows }, { data: profile }, { data: inquiry }] = await Promise.all([
     supabase
       .from("reviews")
       .select("*, profiles(full_name, avatar_url)")
@@ -74,9 +77,21 @@ export default async function VendorPage({ params }: VendorPageProps) {
       .eq("category", vendor.category)
       .neq("id", vendor.id)
       .limit(4),
+    user
+      ? supabase.from("profiles").select("role").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase.from("vendor_inquiries").select("id").eq("user_id", user.id).eq("vendor_id", vendor.id).limit(1).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   const reviews = (reviewRows ?? []) as Review[];
   const similarVendors = (similarRows ?? []) as Vendor[];
+  const myReview = user ? reviews.find((r) => r.user_id === user.id) ?? null : null;
+  // Rating gate (Fahoood, Nov 26 2026): organizers who've actually
+  // contacted this vendor (vendor_inquiries) can rate them — same rule
+  // enforced again at the DB level (migration 024), see that file's
+  // comment for why vendor_inquiries is the "dealt with" signal used.
+  const canReviewVendor = Boolean(user) && profile?.role === "organizer" && Boolean(inquiry);
 
   const name = isRTL ? vendor.name_ar : vendor.name_en;
   const description = isRTL ? vendor.description_ar : vendor.description_en;
@@ -210,6 +225,20 @@ export default async function VendorPage({ params }: VendorPageProps) {
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {canReviewVendor && (
+                <div className="mt-4">
+                  <VendorReviewForm
+                    vendorId={vendor.id}
+                    isRTL={isRTL}
+                    existingReview={
+                      myReview
+                        ? { rating: myReview.rating, comment: (isRTL ? myReview.comment_ar : myReview.comment_en) ?? "" }
+                        : null
+                    }
+                  />
                 </div>
               )}
             </div>
